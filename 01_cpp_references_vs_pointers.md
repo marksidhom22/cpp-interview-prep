@@ -8,6 +8,60 @@ Since you already have strong C and embedded experience, the useful way to learn
 
 ---
 
+## Part I - Five-Minute Interview Review
+
+Use this section for a fast review. Follow the links when an answer is not immediate.
+
+### Mandatory mental model
+
+```cpp
+T&        // required, mutable, non-owning alias
+const T&  // required, read-only through this alias, non-owning
+T*        // nullable and reseatable address; normally non-owning in modern C++
+const T*  // nullable pointer providing read-only access to T
+```
+
+- A pointer is an object that stores an address; a reference is an alias. See [The Fundamental Mental Model](#2-the-fundamental-mental-model).
+- A reference must be initialized and cannot be reseated. Assignment through it changes the referred-to object. See [References Must Be Initialized](#4-references-must-be-initialized) and [References Cannot Be Reseated](#7-references-cannot-be-reseated).
+- A pointer can be null and can point somewhere else later. That makes it a natural way to express optional access. See [Pointers Can Be Null](#5-pointers-can-be-null) and [Pointer Syntax Conveys Optionality](#24-pointer-syntax-conveys-optionality).
+- Neither a raw pointer nor a reference normally expresses ownership. See [Raw Pointers and References Usually Do Not Mean Ownership](#25-raw-pointers-and-references-usually-do-not-mean-ownership).
+- Neither form prevents dangling. The referred-to or pointed-to object must outlive every use. See [Reference Lifetime Problems](#16-reference-lifetime-problems) and [References Do Not Imply Lifetime Safety](#49-references-do-not-imply-lifetime-safety).
+- Prefer `const T&` for a required, large, read-only object; `T&` for required mutation; and `T*`/`const T*` when absence is meaningful. See [Choosing Between Them in Modern C++](#45-choosing-between-them-in-modern-c).
+- For contiguous buffers, prefer a sized view such as `std::span<T>` over a naked pointer when the language version and codebase permit it. See [Pointers Work Naturally with Buffers](#20-pointers-work-naturally-with-buffers).
+
+### High-frequency API choices
+
+| Intent | Typical parameter | Important implication |
+|---|---|---|
+| Small input value | `T value` | Function receives its own value |
+| Required, read-only object | `const T& value` | No copy; caller must provide an object |
+| Required, mutable object | `T& value` | Mutation is visible to the caller |
+| Optional, read-only object | `const T* value` | `nullptr` represents absence |
+| Optional, mutable object | `T* value` | Nullable borrowed access with mutation |
+| Ownership transfer | `std::unique_ptr<T>` | Callee receives exclusive ownership |
+| Shared ownership | `std::shared_ptr<T>` | Callee participates in shared lifetime |
+| Contiguous borrowed range | `std::span<T>` | Pointer plus size, without ownership |
+
+See [Typical Interview Function Signatures](#46-typical-interview-function-signatures) for examples and tradeoffs.
+
+### Five interview checks
+
+1. **What does `ref = other;` do?** It assigns to the object already named by `ref`; it does not reseat the reference.
+2. **Can a reference be null?** Valid C++ code does not use a reference as an optional/null state, although undefined-behavior tricks can manufacture an invalid reference.
+3. **Does `const T&` make the original object immutable?** No. It prevents mutation only through that access path.
+4. **Does `T*` mean ownership?** Not by itself. Modern APIs should express ownership explicitly with RAII types.
+5. **Which is safer?** The form whose contract matches the problem. Both can dangle; a reference mainly provides a stronger non-null/reseating interface contract.
+
+For more drills, see [Classic Interview Traps](#47-classic-interview-traps) and [What You Should Know for High-Level Systems Interviews](#51-what-you-should-know-for-high-level-systems-interviews).
+
+---
+
+## Part II - Detailed Reference
+
+The remainder of this chapter expands the object model, syntax, API design, ownership, lifetime, polymorphism, containers, MMIO, concurrency, and interview edge cases.
+
+---
+
 # 1. High-Level Difference
 
 ```cpp
@@ -2444,3 +2498,63 @@ For interviews, the key decision framework is:
 **Non-owning and object must exist?** → `T&` / `const T&`.
 **Non-owning and object may be absent?** → usually `T*`.
 **Raw memory/address/buffer semantics?** → pointer, or often `std::span` for a sized contiguous range.
+
+---
+
+# Interview Drill Index for Every Detailed Topic
+
+Use this table after reading Part II. Each prompt maps back to the detailed explanation and states what a strong answer must cover.
+
+| Topic | Interview prompt | Strong-answer focus |
+|---|---|---|
+| [1. High-Level Difference](#1-high-level-difference) | What is the fundamental difference between a pointer and a reference? | A pointer is an address-holding object; a reference is an alias. |
+| [2. Fundamental Mental Model](#2-the-fundamental-mental-model) | Why is “a reference is just a safer pointer” incomplete? | It misses alias semantics, non-reseating, API contracts, and the fact that both can dangle. |
+| [3. Syntax](#3-pointer-syntax-vs-reference-syntax) | Compare access and assignment syntax for `T*` and `T&`. | Pointers use address/dereference operations; references use ordinary object syntax. |
+| [4. Initialization](#4-references-must-be-initialized) | Why must a reference be initialized? | Binding establishes which object the alias names; there is no later reseating operation. |
+| [5. Nullability](#5-pointers-can-be-null) | When is a pointer better than a reference? | When absence, reseating, address arithmetic, or C/low-level interoperability is meaningful. |
+| [6. Null References](#6-can-references-be-null) | Can a C++ reference be null? | A valid reference must denote an object; manufacturing an invalid one leads to undefined behavior. |
+| [7. Reseating](#7-references-cannot-be-reseated) | What does `ref = other;` do? | It assigns to the already-referred-to object; it does not rebind the reference. |
+| [8. Pointer Object](#8-a-pointer-itself-is-an-object) | What consequences follow from a pointer being an object? | It has storage, size, an address, assignability, and its own const qualification. |
+| [9. Implementation](#9-how-are-references-implemented) | Is a reference guaranteed to occupy pointer-sized storage? | No language guarantee; implementations often use addresses, but optimization and ABI decide representation. |
+| [10. Parameter Passing](#10-passing-by-value-vs-pointer-vs-reference) | Choose value, pointer, or reference for a function parameter. | Discuss copying, mutation, nullability, ownership, size, and lifetime. |
+| [11. `const T&`](#11-const-t-one-of-the-most-important-c-constructs) | Why is `const T&` common for large inputs? | Required read-only borrowing without a copy; still lifetime-dependent and not globally immutable. |
+| [12. Pointer Const](#12-const-t-vs-t-const) | Explain `const T*`, `T* const`, and `const T* const`. | Distinguish pointee constness from pointer-object constness. |
+| [13. Reference Const](#13-references-and-const) | What does `const T&` make const? | Access through the reference, not necessarily the original object or other aliases. |
+| [14. `T& const`](#14-there-is-no-useful-t-const) | Why is `T& const` not a useful additional type? | References are already non-reseatable; const applies meaningfully to the referred-to type. |
+| [15. Mutation](#15-mutation-through-references) | How does a mutable reference affect API clarity? | `T&` advertises that mutation of the caller's object is possible. |
+| [16. Lifetime Problems](#16-reference-lifetime-problems) | Give a dangling-reference example. | Returning a local or outliving the owner; non-null syntax does not extend lifetime. |
+| [17. Safe Returns](#17-safe-reference-returns) | When is returning `T&` or `const T&` safe? | The referred-to object must outlive every caller use; document invalidation. |
+| [18. Const Overloads](#18-const-overloads-using-references) | Why provide const and non-const accessors? | Mutable objects receive `T&`; const objects receive `const T&`, preserving constness. |
+| [19. Arithmetic](#19-pointers-support-arithmetic) | Why do pointers support arithmetic but references do not? | Pointers model addresses/array traversal; references model one aliased object. |
+| [20. Buffers](#20-pointers-work-naturally-with-buffers) | What is better than pointer-plus-size for a borrowed buffer? | Often `std::span`, because it couples the address with an element count without ownership. |
+| [21. Pointer to Pointer](#21-pointer-to-pointer-has-meaning) | When is `T**` used? | C APIs, output/reseating of a pointer, arrays of pointers, and multi-level structures. |
+| [22. Arrays of References](#22-arrays-of-references-are-not-allowed) | Why is `T& refs[N]` invalid, and what can replace it? | References are not reseatable objects; use pointers or `std::reference_wrapper`. |
+| [23. Polymorphism](#23-references-and-polymorphism) | How do references prevent object slicing? | Passing `Base&`/`const Base&` preserves the derived object and supports virtual dispatch. |
+| [24. Optionality](#24-pointer-syntax-conveys-optionality) | How can a signature communicate whether an argument is optional? | Use a reference for required borrowing and a pointer/optional wrapper for absence. |
+| [25. Ownership](#25-raw-pointers-and-references-usually-do-not-mean-ownership) | Do raw pointers or references own objects? | Normally no in modern interfaces; use direct members or smart pointers for ownership. |
+| [26. Output Parameters](#26-pointer-vs-reference-for-output-parameters) | Reference or pointer for an output parameter? | Reference implies required output; pointer may be optional, but returning a value may be clearer. |
+| [27. Linked Structures](#27-pointer-vs-reference-for-linked-structures) | Why are pointers natural for linked nodes? | Links may be absent and must be reseatable; ownership must still be defined separately. |
+| [28. Range Loops](#28-references-in-range-based-loops) | Compare `auto`, `auto&`, and `const auto&` in a range loop. | Copy each element, mutate borrowed elements, or read borrowed elements without copies. |
+| [29. `auto`](#29-reference-type-deduction-with-auto) | What happens in `auto x = ref`? | Plain `auto` usually drops reference/top-level const and creates a value copy. |
+| [30. Temporaries](#30-references-and-temporary-objects) | When can a const reference bind to a temporary? | It can bind read-only; lifetime extension depends on the exact binding context. |
+| [31. Lvalues](#31-lvalues-and-references) | Which expressions bind to `T&`, `const T&`, and `T&&`? | Mutable lvalues, broad read-only binding, and rvalues respectively, with deduction nuances. |
+| [32. Reference to Pointer](#32-reference-to-pointer) | What does `T*&` allow a function to do? | Modify/reseat the caller's pointer object while still using reference syntax. |
+| [33. Pointer to Reference](#33-pointer-to-reference-does-not-exist) | Why is there no `T&*`? | A reference is not an independently addressable reseatable object type; use `T*` or wrappers. |
+| [34. Reference Members](#34-reference-members) | What are the tradeoffs of a reference data member? | Required binding and non-reseating, but external lifetime dependency and difficult assignment. |
+| [35. HAL Example](#35-embedded-example-hardware-abstraction) | Why might a driver store a reference to a bus interface? | It expresses a required borrowed dependency and supports test substitution without ownership. |
+| [36. MMIO](#36-mmio-pointers-are-often-the-natural-tool) | Why are pointers natural for memory-mapped I/O? | Hardware is addressed, possibly optional/rebased, and needs volatile-qualified access. |
+| [37. Dangling](#37-references-do-not-eliminate-dangling-problems) | Are references lifetime-safe? | No; syntax removes null/reseating states but cannot prove the owner outlives the borrow. |
+| [38. Invalidation](#38-container-invalidation) | What happens to element references when a vector reallocates? | Old element lifetimes/storage end or move; pointers, references, and iterators are invalidated. |
+| [39. Thread Safety](#39-references-and-thread-safety) | Does passing by const reference make concurrent access safe? | No; shared-state synchronization and absence of data races are separate concerns. |
+| [40. Volatile](#40-volatile-references) | How do const and volatile differ for hardware access? | Const controls software mutation permission; volatile preserves observable accesses. |
+| [41. Function Return](#41-function-return-pointer-vs-reference) | Pointer or reference return? | Reference expresses required result; pointer can express not-found, but both borrow unless ownership says otherwise. |
+| [42. Member Access](#42-vs--) | Why do pointers use `->` and references use `.`? | Pointer access dereferences an address; a reference already behaves as an alias to the object. |
+| [43. Comparison](#43-pointer-comparison-vs-reference-comparison) | What is compared by `p1 == p2` versus `r1 == r2`? | Pointer values/addresses versus the referred-to objects' equality operation. |
+| [44. Comparison Table](#44-compact-comparison-table) | Summarize pointer/reference tradeoffs in one minute. | Address object vs alias, optionality, reseating, arithmetic, ownership neutrality, and dangling risk. |
+| [45. Choosing](#45-choosing-between-them-in-modern-c) | State a practical selection rule. | Value for cheap copies; references for required borrows; pointers for optional/address semantics; RAII for ownership. |
+| [46. Signatures](#46-typical-interview-function-signatures) | Design signatures for required, optional, mutable, read-only, owning, and buffer inputs. | Make each contract visible in the type. |
+| [47. Traps](#47-classic-interview-traps) | What reference/pointer mistakes recur in interviews? | Reseating misconception, dangling returns, const-position errors, copies from `auto`, invalidation, and ownership confusion. |
+| [48. Systems View](#48-the-deeper-systems-programmer-viewpoint) | Do references necessarily generate different machine code from pointers? | Often not; their main difference is source-level semantics, optimization freedom, and API guarantees. |
+| [49. Lifetime Safety](#49-references-do-not-imply-lifetime-safety) | What must be proven for every borrow? | The source object's lifetime and validity extend through every access. |
+| [50. Guidelines](#50-practical-guidelines) | Give concise pointer/reference coding guidelines. | Prefer the narrowest truthful contract, explicit ownership, const correctness, and sized views. |
+| [51. Readiness](#51-what-you-should-know-for-high-level-systems-interviews) | What should a systems candidate explain beyond syntax? | Ownership, lifetime, aliasing, invalidation, polymorphism, MMIO, concurrency, generated code, and tradeoffs. |
