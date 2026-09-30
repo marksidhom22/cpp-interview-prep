@@ -1,0 +1,155 @@
+format_version: 1
+id: cpp-study-12-standard-library
+title: 'C++ Study: Standard Template Library (STL)'
+description: Focused C++ study cards covering Standard Template Library (STL).
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '12.1'
+  topic: Standard Template Library (STL)
+  question: What is a container, and what are the major STL components?
+  answer: |-
+    A container is an object that stores a collection of other objects. The STL’s generic architecture combines containers, iterators/ranges, algorithms, callables/policies, and allocators.
+
+    **More detail:** Iterators and algorithms decouple traversal from storage, allowing the same algorithm to operate on multiple compatible containers.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.2'
+  topic: Standard Template Library (STL)
+  question: What is the default sequence container?
+  answer: |-
+    `std::vector`, because it provides contiguous storage, cache locality, random access, and amortized constant-time append. Choose another container only for specific required semantics.
+
+    **More detail:** Contiguous layout also supports interoperability with C APIs and efficient bulk access; account for reallocation invalidation when appending.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.3'
+  topic: Standard Template Library (STL)
+  question: When should you choose `array`, `deque`, or `list`?
+  answer: |-
+    Use `array` for compile-time fixed contiguous storage, `deque` for efficient operations at both ends, and `list` only when stable nodes and frequent known-position splicing justify allocation and locality costs.
+
+    **More detail:** `std::list` does not provide constant-time random access and often performs poorly for traversal due to per-node allocation and cache misses.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.4'
+  topic: Standard Template Library (STL)
+  question: How do `map` and `unordered_map` differ?
+  answer: |-
+    `map` is ordered with logarithmic operations and predictable worst-case behavior. `unordered_map` uses hashing for average constant-time operations but has rehash costs and worst-case linear behavior.
+
+    **More detail:** Choose ordered lookup when ordering or predictable logarithmic bounds matter, and hashing when average lookup speed suits the workload.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.5'
+  topic: Standard Template Library (STL)
+  question: What are the complexities of common operations?
+  answer: |-
+    `vector[index]`: O(1); `vector::push_back`: amortized O(1); vector middle insertion: O(n); `map::find`: O(log n); `unordered_map::find`: average O(1), worst O(n); `sort`: O(n log n).
+
+    **More detail:** Complexity describes growth with input size, not fixed latency; allocation, cache behavior, and worst-case guarantees can matter in practice.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.6'
+  topic: Standard Template Library (STL)
+  question: What is amortized complexity?
+  answer: |-
+    An expensive operation may occur occasionally, but the cost averaged across a sequence of operations has the stated bound—for example, vector growth makes repeated `push_back` amortized O(1).
+
+    **More detail:** Amortized bounds apply over a sequence of operations and do not promise that every individual append is constant time.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.7'
+  topic: Standard Template Library (STL)
+  question: What do `size`, `capacity`, `reserve`, and `resize` mean for a vector?
+  answer: |-
+    `size` is the number of elements; `capacity` is storage available before reallocation; `reserve` changes capacity without changing size; `resize` changes the number of elements.
+
+    **More detail:** Calling `reserve` can reduce reallocations when the expected element count is known, but it does not construct elements.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.8'
+  topic: Standard Template Library (STL)
+  question: What are the key vector invalidation rules?
+  answer: |-
+    Reallocation invalidates all element pointers, references, and iterators. Erasure invalidates those at and after the erased position. Non-reallocating insertion invalidates handles at and after the insertion point.
+
+    **More detail:** After an invalidating operation, previously saved iterators, pointers, and references must not be used unless the specific guarantee preserves them.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.9'
+  topic: Standard Template Library (STL)
+  question: What invalidation behavior do node-based associative containers have?
+  answer: |-
+    Insertion into ordered associative containers normally preserves existing iterators and references; erasure invalidates only erased elements. Unordered rehash invalidates iterators, though references/pointers to elements generally remain valid.
+
+    **More detail:** Unordered-container rehash changes bucket organization; reacquire iterators after rehash even when element references remain stable.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.10'
+  topic: Standard Template Library (STL)
+  question: What are the main iterator categories?
+  answer: |-
+    Input, output, forward, bidirectional, random-access, and contiguous. Each category adds capabilities, and algorithms state the minimum category they require.
+
+    **More detail:** Algorithms require particular iterator capabilities, so matching the category is necessary for both correctness and complexity.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.11'
+  topic: Standard Template Library (STL)
+  question: Why can’t `std::sort` sort a `std::list`?
+  answer: |-
+    `std::sort` requires random-access iterators, while `list` provides bidirectional iterators. Use `list::sort`.
+
+    **More detail:** `list::sort` can relink nodes without requiring random access, preserving the list's iterator model.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.12'
+  topic: Standard Template Library (STL)
+  question: What is the erase-remove pattern?
+  answer: |-
+    Algorithms such as `remove` move unwanted elements to the logical end and return a new end; the container’s `erase` then physically removes them. In C++20, `std::erase`/`std::erase_if` often express this directly.
+
+    **More detail:** The erase-remove idiom applies to sequence containers; associative containers generally erase by key or iterator directly.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.13'
+  topic: Standard Template Library (STL)
+  question: Does `emplace_back` always outperform `push_back`?
+  answer: |-
+    No. It constructs from arguments in place and can avoid a temporary, but optimization and move costs may make performance equivalent; it can also permit conversions that are less explicit.
+
+    **More detail:** Prefer the clearest construction expression and measure performance when it matters; `emplace_back` is not automatically faster.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.14'
+  topic: Standard Template Library (STL)
+  question: What contract must a custom hash and equality function satisfy?
+  answer: |-
+    If two keys compare equal, they must produce the same hash. Unequal keys may collide, but excessive collisions hurt performance.
+
+    **More detail:** Violating equal-keys-equal-hash breaks lookup assumptions and can make equivalent keys unreachable in an unordered container.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.15'
+  topic: Standard Template Library (STL)
+  question: What is the main risk of ranges views?
+  answer: |-
+    Views are often lazy and non-owning, so the underlying range and any referenced callable state must remain alive and valid.
+
+    **More detail:** A lazy view may observe later changes to its source, so avoid retaining it beyond the source lifetime or across invalidation.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.16'
+  topic: Standard Template Library (STL)
+  question: Why does the initial value’s type matter in `std::accumulate`?
+  answer: |-
+    It determines the accumulator type. Starting a floating-point sum with `0` can accumulate as `int`; use a correctly typed initial value such as `0.0`.
+
+    **More detail:** For integer input and a floating result, use a floating initial value such as `0.0`; the accumulator type controls intermediate arithmetic.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.17'
+  topic: Standard Template Library (STL)
+  question: What do container adapters provide?
+  answer: |-
+    `stack` provides LIFO, `queue` provides FIFO, and `priority_queue` provides repeated access to the highest-priority element through a restricted underlying-container interface.
+
+    **More detail:** Adapters expose restricted operations suited to a policy; use a different underlying container only when its guarantees are needed.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.18'
+  topic: Standard Template Library (STL)
+  question: What extra questions matter before using STL facilities in embedded or real-time code?
+  answer: |-
+    Allocation timing, bounded capacity, iterator validity, exception policy, worst-case complexity, code size, allocator strategy, library support, and whether the operation is deterministic enough for the required context.
+
+    **More detail:** Bound memory and execution time explicitly, and verify allocator and library behavior for the exact embedded toolchain and runtime context.
+  source: 12_cpp_standard_template_library_stl.md
+assets: {}

@@ -1,0 +1,139 @@
+format_version: 1
+id: cpp-study-09-modern-cpp-and-iteration
+title: 'C++ Study: Modern C++ Language Features and Iteration'
+description: Focused C++ study cards covering Modern C++ Language Features and Iteration.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '09.1'
+  topic: Modern C++ Language Features and Iteration
+  question: Does `auto` mean dynamic typing?
+  answer: |-
+    No. The compiler deduces one static type at compile time.
+
+    **More detail:** The deduced type is fixed at compile time and can be inspected by the compiler; `auto` does not add runtime type discovery.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.2'
+  topic: Modern C++ Language Features and Iteration
+  question: What does plain `auto` usually discard?
+  answer: |-
+    References and top-level const. Add `&`, `const &`, `*`, or `&&` when those semantics are required.
+
+    **More detail:** Deduction follows template-like rules; write the desired reference and cv-qualification explicitly when copies or mutation matter.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.3'
+  topic: Modern C++ Language Features and Iteration
+  question: What is the brace-deduction trap with `auto`?
+  answer: |-
+    `auto x{1}` deduces `int`, while `auto x = {1}` normally deduces `std::initializer_list<int>`.
+
+    **More detail:** The first form uses direct-list initialization of one element, while the equals form deduces an initializer-list type.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.4'
+  topic: Modern C++ Language Features and Iteration
+  question: When should `decltype` or `decltype(auto)` be used?
+  answer: |-
+    When exact declaration/expression type rules matter, especially preserving references in generic forwarding or wrapper code. Parenthesization can change `decltype` results.
+
+    **More detail:** These tools are most valuable in generic code where spelling the exact dependent type would be brittle or difficult.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.5'
+  topic: Modern C++ Language Features and Iteration
+  question: How do common range-for declarations differ?
+  answer: |-
+    `auto x` copies; `auto& x` mutates the element; `const auto& x` reads without copying; `auto&& x` is a generic binding useful for proxy and range element types.
+
+    **More detail:** Prefer references for large elements or mutation; use a value when an independent copy is intentional and affordable.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.6'
+  topic: Modern C++ Language Features and Iteration
+  question: When is an index loop preferable to a range-for?
+  answer: |-
+    When the index, a stride, coordinated traversal of multiple ranges, or precise mutation/erasure control is part of the algorithm.
+
+    **More detail:** An index is appropriate when it is part of the logic, but otherwise range-for avoids manual bounds and indexing errors.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.7'
+  topic: Modern C++ Language Features and Iteration
+  question: What can structured bindings decompose?
+  answer: |-
+    Arrays, tuple-like types, and eligible class objects. Use `auto&` or `const auto&` when you need references rather than copies.
+
+    **More detail:** Binding by value copies the decomposed elements; reference-qualified bindings preserve access to the original object.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.8'
+  topic: Modern C++ Language Features and Iteration
+  question: What lifetime risk exists with lambda captures?
+  answer: |-
+    Reference captures and captured `this` can dangle if the closure outlives the referenced object. Capturing `this` does not copy the whole object unless explicitly requested through an appropriate capture.
+
+    **More detail:** A closure does not automatically extend the lifetime of objects captured by reference or of an object reached through `this`.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.9'
+  topic: Modern C++ Language Features and Iteration
+  question: Why prefer a named algorithm over a handwritten loop?
+  answer: |-
+    When it directly expresses intent—such as find, sort, transform, or count—it reduces indexing errors and communicates the operation more clearly.
+
+    **More detail:** Standard algorithms separate the operation from traversal details and often work consistently across different iterator-based containers.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.10'
+  topic: Modern C++ Language Features and Iteration
+  question: What are the main benefits and risks of C++20 views?
+  answer: |-
+    Views are lazy and composable with little copying, but many are non-owning. Their source range and captured state must outlive use.
+
+    **More detail:** A view pipeline may defer work until iteration, so both the source range and any referenced state must still be valid then.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.11'
+  topic: Modern C++ Language Features and Iteration
+  question: Why is `nullptr` better than `0` or `NULL`?
+  answer: |-
+    It has a dedicated null-pointer type, avoids integer-overload ambiguity, and expresses pointer intent.
+
+    **More detail:** `nullptr` converts to pointer types but not integer types, making overloaded calls clearer and safer than using `0` or `NULL`.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.12'
+  topic: Modern C++ Language Features and Iteration
+  question: What does `enum class` improve?
+  answer: |-
+    It scopes enumerator names and prevents unintended implicit conversion to integers, improving type safety.
+
+    **More detail:** Enumerators are qualified, for example `Color::Red`, and conversion requires an explicit cast when integer representation is intended.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.13'
+  topic: Modern C++ Language Features and Iteration
+  question: How do `constexpr`, `consteval`, and `constinit` differ?
+  answer: |-
+    `constexpr` permits compile-time evaluation when requirements are met; `consteval` requires compile-time calls; `constinit` requires static initialization of a static/thread object but does not make it const.
+
+    **More detail:** `constinit` addresses initialization timing, not immutability; a `constinit` object may still be mutable after startup.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.14'
+  topic: Modern C++ Language Features and Iteration
+  question: What does `noexcept` communicate?
+  answer: |-
+    The function promises not to let exceptions escape. Violating the promise calls `std::terminate`; accurate `noexcept` can also enable safer/faster container moves.
+
+    **More detail:** Use conditional `noexcept` where appropriate for move operations, and ensure the promise reflects every operation they perform.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.15'
+  topic: Modern C++ Language Features and Iteration
+  question: What do `optional`, `variant`, `span`, and `string_view` express?
+  answer: |-
+    `optional` expresses possible absence; `variant` a closed set of alternatives; `span` a borrowed contiguous range; `string_view` a borrowed character sequence. The view types do not own their data.
+
+    **More detail:** `span` and `string_view` are non-owning views; `optional` and `variant` store their contained value directly.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.16'
+  topic: Modern C++ Language Features and Iteration
+  question: Why use `override`, `= default`, and `= delete`?
+  answer: |-
+    They make intent compiler-checkable: verify an override, request the generated operation, or explicitly forbid an operation.
+
+    **More detail:** `override` catches signature mismatches, `= default` requests generated behavior, and `= delete` rejects selected operations at compile time.
+  source: 09_modern_cpp_language_features_and_iteration.md
+assets: {}

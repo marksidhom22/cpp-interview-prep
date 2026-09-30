@@ -1,0 +1,878 @@
+format_version: 1
+id: cpp-interview
+title: C++ Study Flashcards
+description: Modern C++ and embedded software study.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '00.1'
+  topic: C++ Study Plan
+  question: What five areas should a C++ study plan cover?
+  answer: Modern C++; data structures and algorithms; OOP and software design; operating systems, concurrency, and embedded systems; and embedded/autonomous-system design and debugging.
+  source: C++ study notes
+- id: '00.2'
+  topic: C++ Study Plan
+  question: What is the recommended preparation-time split?
+  answer: |-
+    - Data structures and algorithms: 35%
+    - Modern C++: 25%
+    - Embedded, OS, and concurrency: 20%
+    - OOP and design: 10%
+    - System design, behavioral preparation, and applications: 10%
+  source: C++ study notes
+- id: '00.3'
+  topic: C++ Study Plan
+  question: What should a strong coding-problem workflow look like?
+  answer: Clarify requirements, give a brute-force solution, derive an optimized solution, state invariants, implement cleanly, test edge cases, and explain time and space complexity.
+  source: C++ study notes
+- id: '00.4'
+  topic: C++ Study Plan
+  question: What are the Rule of Three, Rule of Five, and Rule of Zero?
+  answer: |-
+    - Rule of Three: if a type needs a custom destructor, copy constructor, or copy assignment, it often needs all three.
+    - Rule of Five: add move constructor and move assignment.
+    - Rule of Zero: prefer members that manage their own resources so the class declares none of these operations.
+  source: C++ study notes
+- id: '00.5'
+  topic: C++ Study Plan
+  question: What is RAII?
+  answer: 'Resource Acquisition Is Initialization ties resource ownership to object lifetime: acquire during construction, release during destruction. It provides deterministic cleanup during normal exit and exception unwinding.'
+  source: C++ study notes
+- id: '00.6'
+  topic: C++ Study Plan
+  question: When should you use `unique_ptr`, `shared_ptr`, and `weak_ptr`?
+  answer: Use `unique_ptr` for exclusive ownership, `shared_ptr` only for genuine shared lifetime, and `weak_ptr` for non-owning observation of shared state or to break ownership cycles.
+  source: C++ study notes
+- id: '00.7'
+  topic: C++ Study Plan
+  question: What are the core SOLID principles?
+  answer: Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion. They guide maintainable interfaces, but should be applied according to the design rather than mechanically.
+  source: C++ study notes
+- id: '00.8'
+  topic: C++ Study Plan
+  question: Why prefer composition over inheritance?
+  answer: Composition usually creates looser coupling, explicit ownership, and replaceable behavior. Use inheritance when there is a genuine substitutable “is-a” relationship or a required polymorphic interface.
+  source: C++ study notes
+- id: '00.9'
+  topic: C++ Study Plan
+  question: What algorithm patterns should be immediately recognizable?
+  answer: Hashing, two pointers, sliding window, prefix sums, binary search, DFS/BFS, heaps, interval processing, greedy choice, backtracking, and dynamic programming.
+  source: C++ study notes
+- id: '00.10'
+  topic: C++ Study Plan
+  question: What must be stated when discussing a concurrent design?
+  answer: Shared state, synchronization mechanism, ownership and lifetime, ordering requirements, data-race prevention, deadlock risks, blocking behavior, and shutdown/cancellation behavior.
+  source: C++ study notes
+- id: '00.11'
+  topic: C++ Study Plan
+  question: What changes when evaluating code for embedded or real-time use?
+  answer: Consider deterministic timing, bounded memory use, allocation policy, interrupt context, hardware access, concurrency, error recovery, watchdogs, and worst-case rather than average-case behavior.
+  source: C++ study notes
+- id: '00.12'
+  topic: C++ Study Plan
+  question: When are you ready to apply what you have studied?
+  answer: When you can solve unfamiliar problems while communicating clearly, write and debug modern C++, reason about ownership and concurrency, discuss embedded tradeoffs, and explain prior projects and failures with evidence.
+  source: C++ study notes
+- id: '01.1'
+  topic: References vs Pointers
+  question: What is the core difference between a pointer and a reference?
+  answer: A pointer is an object that stores an address. A reference is an alias for another object.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.2'
+  topic: References vs Pointers
+  question: What contracts do `T&`, `const T&`, `T*`, and `const T*` express?
+  answer: |-
+    - `T&`: required, mutable, non-owning alias.
+    - `const T&`: required, read-only through this alias, non-owning.
+    - `T*`: nullable and reseatable address, normally non-owning.
+    - `const T*`: nullable, reseatable pointer giving read-only access to `T`.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.3'
+  topic: References vs Pointers
+  question: What does `ref = other;` do?
+  answer: It assigns `other` to the object already named by `ref`; it does not reseat the reference.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.4'
+  topic: References vs Pointers
+  question: Can a valid reference be null or be reseated?
+  answer: No. A reference must be initialized and cannot later be reseated. Invalid tricks can manufacture a bad reference, but using one has undefined behavior and is not a valid optional-state design.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.5'
+  topic: References vs Pointers
+  question: Do raw pointers or references express ownership?
+  answer: Normally no. Modern interfaces should express ownership with RAII types such as `unique_ptr`, `shared_ptr`, containers, or resource-owning classes.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.6'
+  topic: References vs Pointers
+  question: Can pointers and references dangle?
+  answer: Yes. Neither keeps the target alive. The target object must outlive every use, and container operations may invalidate existing handles.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.7'
+  topic: References vs Pointers
+  question: When should an input be passed by value?
+  answer: For small, cheap-to-copy values, or when the function deliberately needs its own value. A by-value sink can then move from its parameter.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.8'
+  topic: References vs Pointers
+  question: When should an API use a reference versus a pointer?
+  answer: Use `const T&` for required read-only access, `T&` for required mutation, and `const T*` or `T*` when absence is meaningful.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.9'
+  topic: References vs Pointers
+  question: What should represent a borrowed contiguous buffer?
+  answer: Prefer `std::span<T>` when available because it carries both address and length without ownership. A naked pointer alone does not describe the range size.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.10'
+  topic: References vs Pointers
+  question: What is the difference between `const T*` and `T* const`?
+  answer: '`const T*` is a reseatable pointer to read-only `T`. `T* const` is a fixed pointer to mutable `T`. `const T* const` fixes both access and pointer value.'
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.11'
+  topic: References vs Pointers
+  question: Why are arrays of references disallowed, while pointer arrays are valid?
+  answer: References are not ordinary reseatable objects with independent value semantics. Pointers are objects, so they can be stored, copied, assigned, and placed in arrays.
+  source: 01_cpp_references_vs_pointers.md
+- id: '01.12'
+  topic: References vs Pointers
+  question: When is returning a reference safe?
+  answer: Only when the referred-to object outlives the caller’s use—for example, an element of a still-live object or a valid static object. Never return a reference or pointer to a local automatic object.
+  source: 01_cpp_references_vs_pointers.md
+- id: '02.1'
+  topic: '`const` Syntax and Meaning'
+  question: What is the best mental model for `const`?
+  answer: '`const` prevents mutation through a particular access path. It is a compile-time interface guarantee, not necessarily global or deep immutability.'
+  source: C++ study notes
+- id: '02.2'
+  topic: '`const` Syntax and Meaning'
+  question: Why must a const object be initialized?
+  answer: Because ordinary assignment is unavailable after initialization. Its initial state must be established when the object is created.
+  source: C++ study notes
+- id: '02.3'
+  topic: '`const` Syntax and Meaning'
+  question: Are `const int*` and `int const*` different?
+  answer: No. Both are pointers to const `int`.
+  source: C++ study notes
+- id: '02.4'
+  topic: '`const` Syntax and Meaning'
+  question: What is top-level versus low-level const?
+  answer: Top-level const qualifies the object itself, such as the pointer in `T* const`. Low-level const qualifies an object reached through another type, such as the pointee in `const T*`.
+  source: C++ study notes
+- id: '02.5'
+  topic: '`const` Syntax and Meaning'
+  question: Can `const T&` bind to a mutable object or temporary?
+  answer: Yes. It prevents mutation through that reference. Direct binding can also extend a temporary’s lifetime under the language’s lifetime-extension rules.
+  source: C++ study notes
+- id: '02.6'
+  topic: '`const` Syntax and Meaning'
+  question: Can free functions overload on top-level const of a by-value parameter?
+  answer: No. `void f(int)` and `void f(const int)` are the same function type for overload purposes.
+  source: C++ study notes
+- id: '02.7'
+  topic: '`const` Syntax and Meaning'
+  question: What does a trailing `const` on a member function mean?
+  answer: It makes the implicit object parameter const for that call, prevents ordinary direct mutation through `this`, and allows the function to be called on const objects.
+  source: C++ study notes
+- id: '02.8'
+  topic: '`const` Syntax and Meaning'
+  question: Why provide const and non-const accessor overloads?
+  answer: So mutable objects may receive writable access while const objects receive read-only access, for example `T& operator[](...)` and `const T& operator[](...) const`.
+  source: C++ study notes
+- id: '02.9'
+  topic: '`const` Syntax and Meaning'
+  question: What is logical constness, and what is `mutable` for?
+  answer: Logical constness means the externally observable value does not change. `mutable` permits implementation-only state such as caches or mutexes to change in a const operation.
+  source: C++ study notes
+- id: '02.10'
+  topic: '`const` Syntax and Meaning'
+  question: When is mutation after `const_cast` undefined behavior?
+  answer: When the underlying object was originally declared const. Casting away const from an originally mutable object can be legal, but is usually a design smell.
+  source: C++ study notes
+- id: '02.11'
+  topic: '`const` Syntax and Meaning'
+  question: How does plain `auto` treat top-level const and references?
+  answer: Plain `auto` normally drops references and top-level const, similar to template by-value deduction. Write `auto&`, `const auto&`, or `auto&&` when those semantics matter.
+  source: C++ study notes
+- id: '02.12'
+  topic: '`const` Syntax and Meaning'
+  question: Does `const` imply thread safety or replace `volatile` for MMIO?
+  answer: No. `const` is not synchronization, and `volatile` serves a different purpose for observable accesses such as memory-mapped I/O. Neither makes concurrent non-atomic access race-free.
+  source: C++ study notes
+- id: '03.1'
+  topic: Const Correctness
+  question: What is const correctness?
+  answer: It is the consistent design of types and APIs so read-only and mutable access are accurately expressed and enforced across parameters, members, call chains, and returned access.
+  source: 03_const_correctness.md
+- id: '03.2'
+  topic: Const Correctness
+  question: What four questions should a parameter type answer?
+  answer: Is the argument required? May it be modified? Is ownership transferred or shared? Is copying intended?
+  source: 03_const_correctness.md
+- id: '03.3'
+  topic: Const Correctness
+  question: Why should logically read-only member functions be `const`?
+  answer: It documents the contract, allows calls on const objects, supports const propagation, and expands safe reuse of the type.
+  source: 03_const_correctness.md
+- id: '03.4'
+  topic: Const Correctness
+  question: How does object constness affect overload resolution?
+  answer: A mutable object can call const or non-const members, with the non-const match generally preferred. A const object can call only compatible const-qualified members.
+  source: 03_const_correctness.md
+- id: '03.5'
+  topic: Const Correctness
+  question: Can member overloads differ by return type alone?
+  answer: No. Const/non-const accessors differ through the member function’s trailing `const`, which changes the implicit object parameter.
+  source: 03_const_correctness.md
+- id: '03.6'
+  topic: Const Correctness
+  question: What should const and non-const direct accessors return?
+  answer: When exposing direct access is appropriate, return `T&` from the non-const overload and `const T&` from the const overload.
+  source: 03_const_correctness.md
+- id: '03.7'
+  topic: Const Correctness
+  question: Why is C++ const usually shallow?
+  answer: A const object cannot modify its direct ordinary members, but a pointer member may still point to mutable external data. The handle is part of the const object; the pointee may not be.
+  source: 03_const_correctness.md
+- id: '03.8'
+  topic: Const Correctness
+  question: How does const affect containers and smart pointers?
+  answer: A const container exposes const element access. A const smart-pointer handle usually cannot be reseated, but it may still give mutable access to its pointee unless the pointee type is const.
+  source: 03_const_correctness.md
+- id: '03.9'
+  topic: Const Correctness
+  question: What is const propagation?
+  answer: A const operation must call other operations through const-compatible interfaces. One missing qualifier in a helper can make the full call chain unusable from const objects.
+  source: 03_const_correctness.md
+- id: '03.10'
+  topic: Const Correctness
+  question: What lifetime obligation remains when a const accessor returns a view?
+  answer: The source object and its storage must outlive the view. Const limits mutation; it does not create ownership or extend lifetime.
+  source: 03_const_correctness.md
+- id: '03.11'
+  topic: Const Correctness
+  question: When is `mutable` appropriate?
+  answer: For logically invisible state such as a cache, statistics that are not part of value semantics, or a mutex. It should not hide changes to the object’s meaningful observable state.
+  source: 03_const_correctness.md
+- id: '03.12'
+  topic: Const Correctness
+  question: Why are const correctness and thread safety separate contracts?
+  answer: Const methods can touch mutable state or externally shared objects, and other aliases can mutate the same object. Race freedom requires synchronization or atomic operations.
+  source: 03_const_correctness.md
+- id: '04.1'
+  topic: Constructors, Destructors, and Initialization
+  question: What is the difference between allocation and construction?
+  answer: Allocation obtains raw storage. Construction establishes a live object in that storage by initializing bases and members and executing the constructor when required.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.2'
+  topic: Constructors, Destructors, and Initialization
+  question: What is the difference between initialization and assignment?
+  answer: Initialization establishes an object’s first state as its lifetime begins. Assignment replaces the state of an already-live object.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.3'
+  topic: Constructors, Destructors, and Initialization
+  question: What does `Widget w = other;` mean?
+  answer: It is copy-initialization of a new object, not assignment. `w = other;` is assignment only if `w` already exists.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.4'
+  topic: Constructors, Destructors, and Initialization
+  question: Why prefer member initializer lists?
+  answer: They directly initialize members and are required for bases, references, const members, and members without suitable default constructors. Assignment in the body happens too late for these cases.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.5'
+  topic: Constructors, Destructors, and Initialization
+  question: What determines data-member initialization order?
+  answer: Declaration order inside the class, not the textual order in the constructor’s initializer list.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.6'
+  topic: Constructors, Destructors, and Initialization
+  question: What is the construction order in inheritance?
+  answer: Virtual bases, direct bases, data members in declaration order, then the constructor body. Destruction reverses the completed construction order.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.7'
+  topic: Constructors, Destructors, and Initialization
+  question: What happens to an in-class member initializer?
+  answer: It supplies a default when a constructor does not explicitly initialize that member. A constructor’s member initializer overrides it.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.8'
+  topic: Constructors, Destructors, and Initialization
+  question: What is a delegating constructor?
+  answer: A constructor that invokes another constructor of the same class, centralizing common initialization and reducing duplicated logic.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.9'
+  topic: Constructors, Destructors, and Initialization
+  question: Why mark a single-argument constructor `explicit` by default?
+  answer: To prevent surprising implicit conversions. Leave it implicit only when conversion is intentional and natural for the type.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.10'
+  topic: Constructors, Destructors, and Initialization
+  question: Why do `initializer_list` constructors require care?
+  answer: Brace initialization strongly prefers matching `initializer_list` overloads, which can select a different constructor than parentheses and can reject narrowing conversions.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.11'
+  topic: Constructors, Destructors, and Initialization
+  question: When does an object’s destructor run?
+  answer: 'At lifetime end: scope exit, owner deletion, container destruction, exception unwinding, or destruction of the containing object.'
+  source: 04_constructors_destructors_initialization.md
+- id: '04.12'
+  topic: Constructors, Destructors, and Initialization
+  question: When does a base class need a virtual destructor?
+  answer: When objects may be deleted through a base pointer. Without a virtual destructor, such deletion has undefined behavior. A protected non-virtual destructor can intentionally forbid base-pointer deletion.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.13'
+  topic: Constructors, Destructors, and Initialization
+  question: What happens if construction throws?
+  answer: Already-constructed bases and members are destroyed automatically in reverse order. The incomplete object’s own destructor is not called.
+  source: 04_constructors_destructors_initialization.md
+- id: '04.14'
+  topic: Constructors, Destructors, and Initialization
+  question: How does virtual dispatch behave in constructors and destructors?
+  answer: Dispatch is limited to the class currently under construction or destruction; it does not call overrides in a more-derived portion whose lifetime has not begun or has already ended.
+  source: 04_constructors_destructors_initialization.md
+- id: '05.1'
+  topic: Copy Construction and Copy Assignment
+  question: How do copy construction and copy assignment differ?
+  answer: Copy construction initializes a new object from another object. Copy assignment replaces the state of an existing object.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.2'
+  topic: Copy Construction and Copy Assignment
+  question: Why is a copy constructor normally `Foo(const Foo&)`?
+  answer: Passing by reference avoids recursive copying, and const permits copying from const objects and ordinary lvalues.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.3'
+  topic: Copy Construction and Copy Assignment
+  question: What does compiler-generated copying do?
+  answer: It copies each direct base and non-static data member using that subobject’s copy operation.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.4'
+  topic: Copy Construction and Copy Assignment
+  question: When is memberwise copy correct?
+  answer: When every base and member already has the desired copy semantics—for example, value-like members such as `string`, `vector`, and other Rule-of-Zero types.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.5'
+  topic: Copy Construction and Copy Assignment
+  question: Why is generated copying dangerous for an owning raw pointer?
+  answer: It copies only the address, so two objects may believe they own the same allocation, causing aliasing, double deletion, use-after-free, or leaks.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.6'
+  topic: Copy Construction and Copy Assignment
+  question: What is a deep copy?
+  answer: It creates a distinct owned resource and copies the resource’s contents, so the two objects can be modified and destroyed independently.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.7'
+  topic: Copy Construction and Copy Assignment
+  question: What must copy assignment handle?
+  answer: Existing owned state, self-assignment, exception safety, and a valid result if resource acquisition fails. It conventionally returns `*this` by reference.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.8'
+  topic: Copy Construction and Copy Assignment
+  question: What does the copy-and-swap idiom provide?
+  answer: Construct a safe copy first, then swap it with the target. This naturally handles self-assignment and can provide the strong exception guarantee, at a possible extra-allocation or performance cost.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.9'
+  topic: Copy Construction and Copy Assignment
+  question: When should copying be deleted?
+  answer: When a resource has unique identity or cannot be meaningfully duplicated, such as many mutexes, threads, hardware channels, or unique OS handles.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.10'
+  topic: Copy Construction and Copy Assignment
+  question: How can declaring special members affect moves?
+  answer: User-declared copy operations or a destructor can suppress implicit move generation. Explicitly default, delete, or implement operations according to the intended ownership model.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.11'
+  topic: Copy Construction and Copy Assignment
+  question: What is object slicing?
+  answer: Copying a derived object into a base object by value discards the derived portion. For polymorphic copying, consider an explicit virtual `clone()` interface.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.12'
+  topic: Copy Construction and Copy Assignment
+  question: What is the preferred modern copy-design rule?
+  answer: 'Rule of Zero: compose the type from members whose ownership, copy, move, and destruction behavior are already correct.'
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '06.1'
+  topic: Namespaces and Overloading
+  question: What problem do namespaces solve?
+  answer: They organize names and prevent collisions between components without creating objects or runtime overhead.
+  source: 06_namespaces_and_overloading.md
+- id: '06.2'
+  topic: Namespaces and Overloading
+  question: Why avoid `using namespace ...` in a header?
+  answer: It imports names into every including translation unit, potentially creating collisions, ambiguities, and changed overload sets far from the header.
+  source: 06_namespaces_and_overloading.md
+- id: '06.3'
+  topic: Namespaces and Overloading
+  question: What does an unnamed namespace provide?
+  answer: Internal linkage for names within one translation unit. It is generally preferred to namespace-scope `static` for C++ implementation-only names.
+  source: 06_namespaces_and_overloading.md
+- id: '06.4'
+  topic: Namespaces and Overloading
+  question: What is argument-dependent lookup (ADL)?
+  answer: For an unqualified function call, ADL also searches namespaces and classes associated with the argument types. It is important for operators, customization functions, and swap-style calls.
+  source: 06_namespaces_and_overloading.md
+- id: '06.5'
+  topic: Namespaces and Overloading
+  question: What makes two function declarations overloads?
+  answer: They share a name in the relevant scope but have distinct parameter-type lists or, for members, distinct qualifying forms such as trailing const or reference qualification.
+  source: 06_namespaces_and_overloading.md
+- id: '06.6'
+  topic: Namespaces and Overloading
+  question: Can return type alone distinguish overloads?
+  answer: No, because a call must be resolved before its return value can select a function.
+  source: 06_namespaces_and_overloading.md
+- id: '06.7'
+  topic: Namespaces and Overloading
+  question: What are the main steps of overload resolution?
+  answer: Build the candidate set, keep viable functions, rank required conversions, and select one unique best match. Otherwise the call is ill-formed.
+  source: 06_namespaces_and_overloading.md
+- id: '06.8'
+  topic: Namespaces and Overloading
+  question: How are common implicit conversions ranked?
+  answer: Exact matches beat promotions; promotions beat other standard conversions; standard conversions generally beat user-defined conversions.
+  source: 06_namespaces_and_overloading.md
+- id: '06.9'
+  topic: Namespaces and Overloading
+  question: How can a derived declaration hide base overloads?
+  answer: Declaring any function with the same name in the derived class can hide the entire base overload set. Use `using Base::function;` to restore it when intended.
+  source: 06_namespaces_and_overloading.md
+- id: '06.10'
+  topic: Namespaces and Overloading
+  question: What can operator overloading not change?
+  answer: It cannot invent new operators or change an operator’s precedence, associativity, arity, or evaluation rules.
+  source: 06_namespaces_and_overloading.md
+- id: '06.11'
+  topic: Namespaces and Overloading
+  question: When should an operator be a non-member?
+  answer: Use a non-member for symmetric binary operations when the left operand need not be the class type, often implemented as a hidden friend when private access is appropriate.
+  source: 06_namespaces_and_overloading.md
+- id: '06.12'
+  topic: Namespaces and Overloading
+  question: What is the main operator-design rule?
+  answer: Define an operator only when its meaning is natural, unsurprising, and consistent with the built-in operator’s conceptual behavior.
+  source: 06_namespaces_and_overloading.md
+- id: '07.1'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What three separate concepts are often confused around `static`?
+  answer: Storage duration answers how long storage exists; scope answers where a name is visible; linkage answers whether declarations in different places name the same entity.
+  source: 07_static_explicit_friend.md
+- id: '07.2'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What does a function-local static mean?
+  answer: It has block scope, is initialized once when control first reaches the declaration, and has static storage duration, so it persists across calls.
+  source: 07_static_explicit_friend.md
+- id: '07.3'
+  topic: '`static`, `explicit`, and `friend`'
+  question: Is function-local static initialization thread-safe?
+  answer: Since C++11, initialization is thread-safe. Later reads and writes to the object are not automatically synchronized.
+  source: 07_static_explicit_friend.md
+- id: '07.4'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What is a static data member?
+  answer: One class-associated object shared by all instances rather than a separate member inside each instance.
+  source: 07_static_explicit_friend.md
+- id: '07.5'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What restriction does a static member function have?
+  answer: It has no implicit object and no `this` pointer, so it directly accesses only static members unless given an object explicitly.
+  source: 07_static_explicit_friend.md
+- id: '07.6'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What does namespace-scope `static` mean?
+  answer: It gives the declared name internal linkage, restricting it to the translation unit. An unnamed namespace is generally the more idiomatic C++ choice.
+  source: 07_static_explicit_friend.md
+- id: '07.7'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What problem does construct-on-first-use address?
+  answer: A function-local static delays construction until first use, helping avoid cross-translation-unit static initialization-order problems.
+  source: 07_static_explicit_friend.md
+- id: '07.8'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What does `explicit` prevent?
+  answer: It prevents the constructor or conversion operator from participating in unintended implicit conversions while still allowing appropriate direct or explicit use.
+  source: 07_static_explicit_friend.md
+- id: '07.9'
+  topic: '`static`, `explicit`, and `friend`'
+  question: Does `explicit` reject direct initialization?
+  answer: No. `Type x{arg};` may call an explicit constructor; copy-initialization such as `Type x = arg;` may not use it as an implicit conversion.
+  source: 07_static_explicit_friend.md
+- id: '07.10'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What is a friend function?
+  answer: A non-member function granted access to a class’s private and protected members.
+  source: 07_static_explicit_friend.md
+- id: '07.11'
+  topic: '`static`, `explicit`, and `friend`'
+  question: Is friendship inherited, transitive, or reciprocal?
+  answer: No. Each friendship grant is explicit and limited to the named friend.
+  source: 07_static_explicit_friend.md
+- id: '07.12'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What is a hidden friend?
+  answer: A friend function defined or declared inside a class and primarily found through ADL. It is useful for symmetric operators without broadly polluting ordinary lookup.
+  source: 07_static_explicit_friend.md
+- id: '08.1'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: How do scope, storage duration, lifetime, and ownership differ?
+  answer: Scope is name visibility; storage duration is how long storage exists; lifetime is when a valid object exists in that storage; ownership identifies responsibility for releasing a resource.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.2'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: What are C++’s four storage-duration categories?
+  answer: Automatic, static, thread, and dynamic storage duration.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.3'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: Can a name be out of scope while its object remains alive?
+  answer: Yes. A local static object persists after leaving its block, and a dynamic object can outlive the local pointer that originally referred to it.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.4'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: Where does a `unique_ptr` live?
+  answer: The `unique_ptr` object may have automatic storage while the object it owns has dynamic storage. They are separate objects with linked ownership lifetimes.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.5'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: Why should `new`/`delete` not be mixed with `malloc`/`free`?
+  answer: They use different allocation/lifetime mechanisms. `new` constructs and `delete` destroys; `malloc` and `free` only manage raw storage. Mismatching them is undefined behavior.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.6'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: Does a raw pointer, reference, iterator, span, or view extend lifetime?
+  answer: No. These are borrowed handles; their source object must remain alive and valid.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.7'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: Why is returning a reference to a local object wrong?
+  answer: The local object’s lifetime ends when the function returns, leaving the returned reference dangling.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.8'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: How long do most temporaries live?
+  answer: Until the end of the full expression in which they were created, unless a specific lifetime-extension rule applies.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.9'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: When can a reference extend a temporary’s lifetime?
+  answer: Certain direct bindings, such as a local `const T&` bound directly to a temporary, extend it to the reference’s lifetime. Passing through or returning another reference does not re-extend it.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.10'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: What commonly invalidates container handles?
+  answer: Reallocation, erasure, and container-specific structural changes. The exact rules differ by container and operation and must be checked.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.11'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: Why are reference-capturing lambdas dangerous asynchronously?
+  answer: The closure may execute after captured local objects have died, leaving dangling references. Capture owned values or establish an explicit shared-lifetime strategy.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '08.12'
+  topic: Storage, Scope, Lifetime, Ownership, and Temporaries
+  question: What are the major ownership models?
+  answer: Value ownership, exclusive ownership, shared ownership, and non-owning borrowing. The type system should make the chosen model visible.
+  source: 08_stack_heap_lifetime_scope_temporaries.md
+- id: '09.1'
+  topic: Modern C++ Language Features and Iteration
+  question: Does `auto` mean dynamic typing?
+  answer: No. The compiler deduces one static type at compile time.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.2'
+  topic: Modern C++ Language Features and Iteration
+  question: What does plain `auto` usually discard?
+  answer: References and top-level const. Add `&`, `const &`, `*`, or `&&` when those semantics are required.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.3'
+  topic: Modern C++ Language Features and Iteration
+  question: What is the brace-deduction trap with `auto`?
+  answer: '`auto x{1}` deduces `int`, while `auto x = {1}` normally deduces `std::initializer_list<int>`.'
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.4'
+  topic: Modern C++ Language Features and Iteration
+  question: When should `decltype` or `decltype(auto)` be used?
+  answer: When exact declaration/expression type rules matter, especially preserving references in generic forwarding or wrapper code. Parenthesization can change `decltype` results.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.5'
+  topic: Modern C++ Language Features and Iteration
+  question: How do common range-for declarations differ?
+  answer: '`auto x` copies; `auto& x` mutates the element; `const auto& x` reads without copying; `auto&& x` is a generic binding useful for proxy and range element types.'
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.6'
+  topic: Modern C++ Language Features and Iteration
+  question: When is an index loop preferable to a range-for?
+  answer: When the index, a stride, coordinated traversal of multiple ranges, or precise mutation/erasure control is part of the algorithm.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.7'
+  topic: Modern C++ Language Features and Iteration
+  question: What can structured bindings decompose?
+  answer: Arrays, tuple-like types, and eligible class objects. Use `auto&` or `const auto&` when you need references rather than copies.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.8'
+  topic: Modern C++ Language Features and Iteration
+  question: What lifetime risk exists with lambda captures?
+  answer: Reference captures and captured `this` can dangle if the closure outlives the referenced object. Capturing `this` does not copy the whole object unless explicitly requested through an appropriate capture.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.9'
+  topic: Modern C++ Language Features and Iteration
+  question: Why prefer a named algorithm over a handwritten loop?
+  answer: When it directly expresses intent—such as find, sort, transform, or count—it reduces indexing errors and communicates the operation more clearly.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.10'
+  topic: Modern C++ Language Features and Iteration
+  question: What are the main benefits and risks of C++20 views?
+  answer: Views are lazy and composable with little copying, but many are non-owning. Their source range and captured state must outlive use.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.11'
+  topic: Modern C++ Language Features and Iteration
+  question: Why is `nullptr` better than `0` or `NULL`?
+  answer: It has a dedicated null-pointer type, avoids integer-overload ambiguity, and expresses pointer intent.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.12'
+  topic: Modern C++ Language Features and Iteration
+  question: What does `enum class` improve?
+  answer: It scopes enumerator names and prevents unintended implicit conversion to integers, improving type safety.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.13'
+  topic: Modern C++ Language Features and Iteration
+  question: How do `constexpr`, `consteval`, and `constinit` differ?
+  answer: '`constexpr` permits compile-time evaluation when requirements are met; `consteval` requires compile-time calls; `constinit` requires static initialization of a static/thread object but does not make it const.'
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.14'
+  topic: Modern C++ Language Features and Iteration
+  question: What does `noexcept` communicate?
+  answer: The function promises not to let exceptions escape. Violating the promise calls `std::terminate`; accurate `noexcept` can also enable safer/faster container moves.
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.15'
+  topic: Modern C++ Language Features and Iteration
+  question: What do `optional`, `variant`, `span`, and `string_view` express?
+  answer: '`optional` expresses possible absence; `variant` a closed set of alternatives; `span` a borrowed contiguous range; `string_view` a borrowed character sequence. The view types do not own their data.'
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '09.16'
+  topic: Modern C++ Language Features and Iteration
+  question: Why use `override`, `= default`, and `= delete`?
+  answer: 'They make intent compiler-checkable: verify an override, request the generated operation, or explicitly forbid an operation.'
+  source: 09_modern_cpp_language_features_and_iteration.md
+- id: '10.1'
+  topic: C++ Standards and Version Comparison
+  question: What does a C++ standard specify?
+  answer: Core language semantics, standard-library interfaces and behavior, implementation requirements, and categories such as undefined or implementation-defined behavior. It does not specify one compiler, ABI, OS, or build system.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.2'
+  topic: C++ Standards and Version Comparison
+  question: Why does `-std=c++20` not guarantee complete C++20 support?
+  answer: Compiler front-end and standard-library support are separate, implementations may be incomplete, and platform/linkage/runtime support may also be required.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.3'
+  topic: C++ Standards and Version Comparison
+  question: What established C++98/03?
+  answer: 'The original ISO foundation: classes, inheritance, virtual functions, templates, exceptions, namespaces, RTTI, and the standardized STL, followed by corrections and refinements in C++03.'
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.4'
+  topic: C++ Standards and Version Comparison
+  question: Why is C++11 considered the modern-C++ boundary?
+  answer: It introduced move semantics, smart pointers, lambdas, expanded `auto`, range-for, `nullptr`, `enum class`, uniform initialization, and a standard concurrency model.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.5'
+  topic: C++ Standards and Version Comparison
+  question: What are notable C++14 additions?
+  answer: Generic lambdas, relaxed `constexpr`, return-type deduction refinements, and `std::make_unique`.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.6'
+  topic: C++ Standards and Version Comparison
+  question: What are notable C++17 additions?
+  answer: Structured bindings, `if constexpr`, CTAD, inline variables, guaranteed copy-elision cases, filesystem, and vocabulary types such as `optional`, `variant`, and `string_view`.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.7'
+  topic: C++ Standards and Version Comparison
+  question: What are the headline C++20 features?
+  answer: Concepts, ranges, coroutines, and modules, plus facilities such as `span`, `jthread`, `format`, and new synchronization primitives.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.8'
+  topic: C++ Standards and Version Comparison
+  question: What are notable C++23 additions?
+  answer: Facilities such as `expected`, `print`, and `mdspan`, explicit object parameters, and continued ranges and library refinements. Actual compiler/library support must still be verified.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.9'
+  topic: C++ Standards and Version Comparison
+  question: How should an in-progress standard such as C++26 be treated?
+  answer: As a draft target whose features and implementation status must be verified, not as a universally portable published baseline.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.10'
+  topic: C++ Standards and Version Comparison
+  question: What are feature-test macros for?
+  answer: They let code test whether a specific language or library feature is available instead of assuming support from a broad version mode alone.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.11'
+  topic: C++ Standards and Version Comparison
+  question: How do source compatibility and ABI compatibility differ?
+  answer: Source compatibility means code can be recompiled. ABI compatibility means separately built binaries agree on calling conventions, object layout, symbol naming, library contracts, and related binary details.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.12'
+  topic: C++ Standards and Version Comparison
+  question: How should a project choose its C++ baseline?
+  answer: Balance needed features against compiler/library availability, target platforms, consumers, ABI constraints, certification/tooling, embedded limitations, and maintenance cost—then enforce and test the decision consistently.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '11.1'
+  topic: Templates and Generic Programming
+  question: What is a template?
+  answer: A compile-time pattern for producing type-safe functions, classes, aliases, or variables for concrete type or value arguments.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.2'
+  topic: Templates and Generic Programming
+  question: What kinds of template parameters exist?
+  answer: Type parameters, non-type parameters, and template-template parameters, each of which may have defaults where allowed.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.3'
+  topic: Templates and Generic Programming
+  question: What is template instantiation?
+  answer: The process of forming a concrete specialization from a template and specific arguments. Separate arguments may produce distinct specializations and code.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.4'
+  topic: Templates and Generic Programming
+  question: What must a substituted template type support?
+  answer: Every operation required by the selected code path. Before concepts, these requirements were often implicit compile-time duck typing.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.5'
+  topic: Templates and Generic Programming
+  question: Why do template definitions usually live in headers?
+  answer: The translation unit performing implicit instantiation must see the complete template definition, not only a declaration.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.6'
+  topic: Templates and Generic Programming
+  question: What is the difference between full and partial specialization?
+  answer: Full specialization replaces one exact argument set. Partial specialization matches a family of arguments and is available for class and variable templates, not function templates.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.7'
+  topic: Templates and Generic Programming
+  question: What should be used instead of partial specialization for function templates?
+  answer: Overloading, constraints/concepts, or a helper class that can be partially specialized.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.8'
+  topic: Templates and Generic Programming
+  question: What are variadic templates and fold expressions?
+  answer: Variadic templates accept parameter packs. Fold expressions reduce a pack over a binary operator, such as `(args + ...)`, with unary/binary and left/right forms.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.9'
+  topic: Templates and Generic Programming
+  question: What is SFINAE?
+  answer: 'Substitution Failure Is Not An Error: failure while substituting into certain immediate template contexts removes that candidate from overload resolution instead of producing a hard error.'
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.10'
+  topic: Templates and Generic Programming
+  question: Why prefer C++20 concepts over complex SFINAE?
+  answer: Concepts place requirements in the interface, participate clearly in overload ordering, and usually produce better diagnostics and more maintainable code.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.11'
+  topic: Templates and Generic Programming
+  question: What is a forwarding reference?
+  answer: '`T&&` where `T` is deduced under forwarding-reference rules. Combined with `std::forward<T>`, it preserves whether the caller supplied an lvalue or rvalue.'
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.12'
+  topic: Templates and Generic Programming
+  question: What does `if constexpr` do in a template?
+  answer: It selects a branch at compile time, and the discarded branch is not instantiated in the same way, allowing type-dependent implementations without requiring every branch to be valid for every type.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.13'
+  topic: Templates and Generic Programming
+  question: How do static and runtime polymorphism differ?
+  answer: Templates choose behavior at compile time and can inline but require concrete types and may grow code. Virtual functions choose at runtime and support open runtime substitution with indirection and object-model costs.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.14'
+  topic: Templates and Generic Programming
+  question: What is CRTP?
+  answer: The Curiously Recurring Template Pattern makes a derived type a template argument of its base, enabling forms of static polymorphism and mixin behavior without virtual dispatch.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '11.15'
+  topic: Templates and Generic Programming
+  question: What are the main template costs?
+  answer: Longer builds, verbose diagnostics, implementation exposure in headers, possible code bloat, and more complex interfaces. Use templates when genericity and static guarantees justify those costs.
+  source: 11_cpp_templates_and_generic_programming.md
+- id: '12.1'
+  topic: Standard Template Library (STL)
+  question: What is a container, and what are the major STL components?
+  answer: A container is an object that stores a collection of other objects. The STL’s generic architecture combines containers, iterators/ranges, algorithms, callables/policies, and allocators.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.2'
+  topic: Standard Template Library (STL)
+  question: What is the default sequence container?
+  answer: '`std::vector`, because it provides contiguous storage, cache locality, random access, and amortized constant-time append. Choose another container only for specific required semantics.'
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.3'
+  topic: Standard Template Library (STL)
+  question: When should you choose `array`, `deque`, or `list`?
+  answer: Use `array` for compile-time fixed contiguous storage, `deque` for efficient operations at both ends, and `list` only when stable nodes and frequent known-position splicing justify allocation and locality costs.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.4'
+  topic: Standard Template Library (STL)
+  question: How do `map` and `unordered_map` differ?
+  answer: '`map` is ordered with logarithmic operations and predictable worst-case behavior. `unordered_map` uses hashing for average constant-time operations but has rehash costs and worst-case linear behavior.'
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.5'
+  topic: Standard Template Library (STL)
+  question: What are the complexities of common operations?
+  answer: '`vector[index]`: O(1); `vector::push_back`: amortized O(1); vector middle insertion: O(n); `map::find`: O(log n); `unordered_map::find`: average O(1), worst O(n); `sort`: O(n log n).'
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.6'
+  topic: Standard Template Library (STL)
+  question: What is amortized complexity?
+  answer: An expensive operation may occur occasionally, but the cost averaged across a sequence of operations has the stated bound—for example, vector growth makes repeated `push_back` amortized O(1).
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.7'
+  topic: Standard Template Library (STL)
+  question: What do `size`, `capacity`, `reserve`, and `resize` mean for a vector?
+  answer: '`size` is the number of elements; `capacity` is storage available before reallocation; `reserve` changes capacity without changing size; `resize` changes the number of elements.'
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.8'
+  topic: Standard Template Library (STL)
+  question: What are the key vector invalidation rules?
+  answer: Reallocation invalidates all element pointers, references, and iterators. Erasure invalidates those at and after the erased position. Non-reallocating insertion invalidates handles at and after the insertion point.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.9'
+  topic: Standard Template Library (STL)
+  question: What invalidation behavior do node-based associative containers have?
+  answer: Insertion into ordered associative containers normally preserves existing iterators and references; erasure invalidates only erased elements. Unordered rehash invalidates iterators, though references/pointers to elements generally remain valid.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.10'
+  topic: Standard Template Library (STL)
+  question: What are the main iterator categories?
+  answer: Input, output, forward, bidirectional, random-access, and contiguous. Each category adds capabilities, and algorithms state the minimum category they require.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.11'
+  topic: Standard Template Library (STL)
+  question: Why can’t `std::sort` sort a `std::list`?
+  answer: '`std::sort` requires random-access iterators, while `list` provides bidirectional iterators. Use `list::sort`.'
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.12'
+  topic: Standard Template Library (STL)
+  question: What is the erase-remove pattern?
+  answer: Algorithms such as `remove` move unwanted elements to the logical end and return a new end; the container’s `erase` then physically removes them. In C++20, `std::erase`/`std::erase_if` often express this directly.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.13'
+  topic: Standard Template Library (STL)
+  question: Does `emplace_back` always outperform `push_back`?
+  answer: No. It constructs from arguments in place and can avoid a temporary, but optimization and move costs may make performance equivalent; it can also permit conversions that are less explicit.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.14'
+  topic: Standard Template Library (STL)
+  question: What contract must a custom hash and equality function satisfy?
+  answer: If two keys compare equal, they must produce the same hash. Unequal keys may collide, but excessive collisions hurt performance.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.15'
+  topic: Standard Template Library (STL)
+  question: What is the main risk of ranges views?
+  answer: Views are often lazy and non-owning, so the underlying range and any referenced callable state must remain alive and valid.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.16'
+  topic: Standard Template Library (STL)
+  question: Why does the initial value’s type matter in `std::accumulate`?
+  answer: It determines the accumulator type. Starting a floating-point sum with `0` can accumulate as `int`; use a correctly typed initial value such as `0.0`.
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.17'
+  topic: Standard Template Library (STL)
+  question: What do container adapters provide?
+  answer: '`stack` provides LIFO, `queue` provides FIFO, and `priority_queue` provides repeated access to the highest-priority element through a restricted underlying-container interface.'
+  source: 12_cpp_standard_template_library_stl.md
+- id: '12.18'
+  topic: Standard Template Library (STL)
+  question: What extra questions matter before using STL facilities in embedded or real-time code?
+  answer: Allocation timing, bounded capacity, iterator validity, exception policy, worst-case complexity, code size, allocator strategy, library support, and whether the operation is deterministic enough for the required context.
+  source: 12_cpp_standard_template_library_stl.md
+assets: {}

@@ -1,0 +1,107 @@
+format_version: 1
+id: cpp-study-03-const-correctness
+title: 'C++ Study: Const Correctness'
+description: Focused C++ study cards covering Const Correctness.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '03.1'
+  topic: Const Correctness
+  question: What is const correctness?
+  answer: |-
+    It is the consistent design of types and APIs so read-only and mutable access are accurately expressed and enforced across parameters, members, call chains, and returned access.
+
+    **More detail:** A const-correct API lets callers and the compiler verify mutation permissions consistently from parameters through return values.
+  source: 03_const_correctness.md
+- id: '03.2'
+  topic: Const Correctness
+  question: What four questions should a parameter type answer?
+  answer: |-
+    Is the argument required? May it be modified? Is ownership transferred or shared? Is copying intended?
+
+    **More detail:** Together these questions reveal the ownership and mutation contract, preventing accidental copies, hidden output parameters, and unclear lifetimes.
+  source: 03_const_correctness.md
+- id: '03.3'
+  topic: Const Correctness
+  question: Why should logically read-only member functions be `const`?
+  answer: |-
+    It documents the contract, allows calls on const objects, supports const propagation, and expands safe reuse of the type.
+
+    **More detail:** A const query can be used with const objects and can be called by other const operations, improving composability.
+  source: 03_const_correctness.md
+- id: '03.4'
+  topic: Const Correctness
+  question: How does object constness affect overload resolution?
+  answer: |-
+    A mutable object can call const or non-const members, with the non-const match generally preferred. A const object can call only compatible const-qualified members.
+
+    **More detail:** A non-const object can bind to either member overload, while a const object cannot call a member requiring mutable access.
+  source: 03_const_correctness.md
+- id: '03.5'
+  topic: Const Correctness
+  question: Can member overloads differ by return type alone?
+  answer: |-
+    No. Const/non-const accessors differ through the member function’s trailing `const`, which changes the implicit object parameter.
+
+    **More detail:** Member overloads may differ by the cv/ref qualification of the implicit object parameter, but not by return type alone.
+  source: 03_const_correctness.md
+- id: '03.6'
+  topic: Const Correctness
+  question: What should const and non-const direct accessors return?
+  answer: |-
+    When exposing direct access is appropriate, return `T&` from the non-const overload and `const T&` from the const overload.
+
+    **More detail:** The returned reference remains borrowed: callers must not outlive the object or retain it across invalidating mutations.
+  source: 03_const_correctness.md
+- id: '03.7'
+  topic: Const Correctness
+  question: Why is C++ const usually shallow?
+  answer: |-
+    A const object cannot modify its direct ordinary members, but a pointer member may still point to mutable external data. The handle is part of the const object; the pointee may not be.
+
+    **More detail:** Const prevents reassignment of the pointer member itself, but does not automatically make the pointed-to object const.
+  source: 03_const_correctness.md
+- id: '03.8'
+  topic: Const Correctness
+  question: How does const affect containers and smart pointers?
+  answer: |-
+    A const container exposes const element access. A const smart-pointer handle usually cannot be reseated, but it may still give mutable access to its pointee unless the pointee type is const.
+
+    **More detail:** For `const unique_ptr<T>`, the handle is const while `T` can still be mutable; `unique_ptr<const T>` makes the pointee read-only.
+  source: 03_const_correctness.md
+- id: '03.9'
+  topic: Const Correctness
+  question: What is const propagation?
+  answer: |-
+    A const operation must call other operations through const-compatible interfaces. One missing qualifier in a helper can make the full call chain unusable from const objects.
+
+    **More detail:** Const qualification must be carried through every helper in the call chain or the outer const operation cannot call it.
+  source: 03_const_correctness.md
+- id: '03.10'
+  topic: Const Correctness
+  question: What lifetime obligation remains when a const accessor returns a view?
+  answer: |-
+    The source object and its storage must outlive the view. Const limits mutation; it does not create ownership or extend lifetime.
+
+    **More detail:** A view such as `span` or `string_view` carries access information, not ownership or automatic lifetime extension.
+  source: 03_const_correctness.md
+- id: '03.11'
+  topic: Const Correctness
+  question: When is `mutable` appropriate?
+  answer: |-
+    For logically invisible state such as a cache, statistics that are not part of value semantics, or a mutex. It should not hide changes to the object’s meaningful observable state.
+
+    **More detail:** If callers can observe the mutation as a change in the object's meaningful value, it is not merely implementation detail.
+  source: 03_const_correctness.md
+- id: '03.12'
+  topic: Const Correctness
+  question: Why are const correctness and thread safety separate contracts?
+  answer: |-
+    Const methods can touch mutable state or externally shared objects, and other aliases can mutate the same object. Race freedom requires synchronization or atomic operations.
+
+    **More detail:** Even a const method can race with another thread or alias; const is a type-level access rule, not a synchronization primitive.
+  source: 03_const_correctness.md
+assets: {}

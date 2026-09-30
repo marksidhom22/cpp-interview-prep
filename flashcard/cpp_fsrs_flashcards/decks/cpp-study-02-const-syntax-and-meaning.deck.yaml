@@ -1,0 +1,107 @@
+format_version: 1
+id: cpp-study-02-const-syntax-and-meaning
+title: 'C++ Study: `const` Syntax and Meaning'
+description: Focused C++ study cards covering `const` Syntax and Meaning.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '02.1'
+  topic: '`const` Syntax and Meaning'
+  question: What is the best mental model for `const`?
+  answer: |-
+    `const` prevents mutation through a particular access path. It is a compile-time interface guarantee, not necessarily global or deep immutability.
+
+    **More detail:** Constness applies to an access path: another non-const alias may still modify the same object if the object itself was not declared const.
+  source: C++ study notes
+- id: '02.2'
+  topic: '`const` Syntax and Meaning'
+  question: Why must a const object be initialized?
+  answer: |-
+    Because ordinary assignment is unavailable after initialization. Its initial state must be established when the object is created.
+
+    **More detail:** A const object's initialization is its one opportunity to establish its value; later assignment would violate the const contract.
+  source: C++ study notes
+- id: '02.3'
+  topic: '`const` Syntax and Meaning'
+  question: Are `const int*` and `int const*` different?
+  answer: |-
+    No. Both are pointers to const `int`.
+
+    **More detail:** In these declarations, `const` qualifies the pointed-to `int`; placing it before or after `int` does not change the type.
+  source: C++ study notes
+- id: '02.4'
+  topic: '`const` Syntax and Meaning'
+  question: What is top-level versus low-level const?
+  answer: |-
+    Top-level const qualifies the object itself, such as the pointer in `T* const`. Low-level const qualifies an object reached through another type, such as the pointee in `const T*`.
+
+    **More detail:** For `const int* const p`, both levels are const: the pointer cannot be reseated and the pointee cannot be modified through it.
+  source: C++ study notes
+- id: '02.5'
+  topic: '`const` Syntax and Meaning'
+  question: Can `const T&` bind to a mutable object or temporary?
+  answer: |-
+    Yes. It prevents mutation through that reference. Direct binding can also extend a temporary’s lifetime under the language’s lifetime-extension rules.
+
+    **More detail:** A temporary bound directly to a local const reference can live to the reference's scope, subject to specific language lifetime rules.
+  source: C++ study notes
+- id: '02.6'
+  topic: '`const` Syntax and Meaning'
+  question: Can free functions overload on top-level const of a by-value parameter?
+  answer: |-
+    No. `void f(int)` and `void f(const int)` are the same function type for overload purposes.
+
+    **More detail:** Top-level cv-qualification is ignored when forming a function type for a by-value parameter, so those declarations collide.
+  source: C++ study notes
+- id: '02.7'
+  topic: '`const` Syntax and Meaning'
+  question: What does a trailing `const` on a member function mean?
+  answer: |-
+    It makes the implicit object parameter const for that call, prevents ordinary direct mutation through `this`, and allows the function to be called on const objects.
+
+    **More detail:** The const member-function qualifier affects overload resolution and restricts ordinary mutation through the implicit `this` access path.
+  source: C++ study notes
+- id: '02.8'
+  topic: '`const` Syntax and Meaning'
+  question: Why provide const and non-const accessor overloads?
+  answer: |-
+    So mutable objects may receive writable access while const objects receive read-only access, for example `T& operator[](...)` and `const T& operator[](...) const`.
+
+    **More detail:** This pair preserves constness in both directions: callers get writable access only when the container itself is mutable.
+  source: C++ study notes
+- id: '02.9'
+  topic: '`const` Syntax and Meaning'
+  question: What is logical constness, and what is `mutable` for?
+  answer: |-
+    Logical constness means the externally observable value does not change. `mutable` permits implementation-only state such as caches or mutexes to change in a const operation.
+
+    **More detail:** A cache may be `mutable` if changing it cannot change the object's externally observable value or violate synchronization requirements.
+  source: C++ study notes
+- id: '02.10'
+  topic: '`const` Syntax and Meaning'
+  question: When is mutation after `const_cast` undefined behavior?
+  answer: |-
+    When the underlying object was originally declared const. Casting away const from an originally mutable object can be legal, but is usually a design smell.
+
+    **More detail:** Writing through a cast-away-const pointer is undefined when the original object was declared const, even if the cast compiles.
+  source: C++ study notes
+- id: '02.11'
+  topic: '`const` Syntax and Meaning'
+  question: How does plain `auto` treat top-level const and references?
+  answer: |-
+    Plain `auto` normally drops references and top-level const, similar to template by-value deduction. Write `auto&`, `const auto&`, or `auto&&` when those semantics matter.
+
+    **More detail:** Use `decltype(auto)` or an explicit reference declaration when a wrapper must preserve the expression's reference and cv-qualification.
+  source: C++ study notes
+- id: '02.12'
+  topic: '`const` Syntax and Meaning'
+  question: Does `const` imply thread safety or replace `volatile` for MMIO?
+  answer: |-
+    No. `const` is not synchronization, and `volatile` serves a different purpose for observable accesses such as memory-mapped I/O. Neither makes concurrent non-atomic access race-free.
+
+    **More detail:** Use atomics or synchronization for data-race prevention; use volatile only for implementation-specific observable access requirements such as MMIO.
+  source: C++ study notes
+assets: {}

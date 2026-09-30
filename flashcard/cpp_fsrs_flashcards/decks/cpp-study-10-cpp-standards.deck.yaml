@@ -1,0 +1,107 @@
+format_version: 1
+id: cpp-study-10-cpp-standards
+title: 'C++ Study: C++ Standards and Version Comparison'
+description: Focused C++ study cards covering C++ Standards and Version Comparison.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '10.1'
+  topic: C++ Standards and Version Comparison
+  question: What does a C++ standard specify?
+  answer: |-
+    Core language semantics, standard-library interfaces and behavior, implementation requirements, and categories such as undefined or implementation-defined behavior. It does not specify one compiler, ABI, OS, or build system.
+
+    **More detail:** The standard defines portable language and library contracts while leaving many platform and implementation details to toolchains.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.2'
+  topic: C++ Standards and Version Comparison
+  question: Why does `-std=c++20` not guarantee complete C++20 support?
+  answer: |-
+    Compiler front-end and standard-library support are separate, implementations may be incomplete, and platform/linkage/runtime support may also be required.
+
+    **More detail:** Check both compiler and standard-library feature support on the actual target toolchain, especially for embedded platforms.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.3'
+  topic: C++ Standards and Version Comparison
+  question: What established C++98/03?
+  answer: |-
+    The original ISO foundation: classes, inheritance, virtual functions, templates, exceptions, namespaces, RTTI, and the standardized STL, followed by corrections and refinements in C++03.
+
+    **More detail:** C++03 primarily clarified and corrected the original language and library rather than introducing the scale of changes seen in later standards.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.4'
+  topic: C++ Standards and Version Comparison
+  question: Why is C++11 considered the modern-C++ boundary?
+  answer: |-
+    It introduced move semantics, smart pointers, lambdas, expanded `auto`, range-for, `nullptr`, `enum class`, uniform initialization, and a standard concurrency model.
+
+    **More detail:** C++11 changed common design through move-aware value semantics, library ownership types, and standardized concurrency primitives.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.5'
+  topic: C++ Standards and Version Comparison
+  question: What are notable C++14 additions?
+  answer: |-
+    Generic lambdas, relaxed `constexpr`, return-type deduction refinements, and `std::make_unique`.
+
+    **More detail:** C++14 refined C++11 features and added conveniences without replacing the overall language model.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.6'
+  topic: C++ Standards and Version Comparison
+  question: What are notable C++17 additions?
+  answer: |-
+    Structured bindings, `if constexpr`, CTAD, inline variables, guaranteed copy-elision cases, filesystem, and vocabulary types such as `optional`, `variant`, and `string_view`.
+
+    **More detail:** C++17 improved compile-time branching and deduction while adding widely used library vocabulary types and filesystem support.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.7'
+  topic: C++ Standards and Version Comparison
+  question: What are the headline C++20 features?
+  answer: |-
+    Concepts, ranges, coroutines, and modules, plus facilities such as `span`, `jthread`, `format`, and new synchronization primitives.
+
+    **More detail:** Feature availability varies by compiler and library version, so selecting the language mode alone does not prove support.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.8'
+  topic: C++ Standards and Version Comparison
+  question: What are notable C++23 additions?
+  answer: |-
+    Facilities such as `expected`, `print`, and `mdspan`, explicit object parameters, and continued ranges and library refinements. Actual compiler/library support must still be verified.
+
+    **More detail:** Validate each C++23 facility against the exact compiler, standard library, and target platform used by the project.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.9'
+  topic: C++ Standards and Version Comparison
+  question: How should an in-progress standard such as C++26 be treated?
+  answer: |-
+    As a draft target whose features and implementation status must be verified, not as a universally portable published baseline.
+
+    **More detail:** Draft wording and feature sets can change before publication, and early implementations may be experimental or incomplete.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.10'
+  topic: C++ Standards and Version Comparison
+  question: What are feature-test macros for?
+  answer: |-
+    They let code test whether a specific language or library feature is available instead of assuming support from a broad version mode alone.
+
+    **More detail:** A feature-test macro provides a targeted compile-time capability check that is usually more reliable than compiler-version guesses.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.11'
+  topic: C++ Standards and Version Comparison
+  question: How do source compatibility and ABI compatibility differ?
+  answer: |-
+    Source compatibility means code can be recompiled. ABI compatibility means separately built binaries agree on calling conventions, object layout, symbol naming, library contracts, and related binary details.
+
+    **More detail:** A source-compatible update may still require rebuilding all binaries if object layout, calling convention, or library ABI changes.
+  source: 10_cpp_standards_and_version_comparison.md
+- id: '10.12'
+  topic: C++ Standards and Version Comparison
+  question: How should a project choose its C++ baseline?
+  answer: |-
+    Balance needed features against compiler/library availability, target platforms, consumers, ABI constraints, certification/tooling, embedded limitations, and maintenance cost—then enforce and test the decision consistently.
+
+    **More detail:** Record the chosen baseline in build configuration and CI so developers and release builds use consistent language and library modes.
+  source: 10_cpp_standards_and_version_comparison.md
+assets: {}

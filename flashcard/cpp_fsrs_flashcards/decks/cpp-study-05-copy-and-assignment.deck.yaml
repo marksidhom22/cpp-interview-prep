@@ -1,0 +1,107 @@
+format_version: 1
+id: cpp-study-05-copy-and-assignment
+title: 'C++ Study: Copy Construction and Copy Assignment'
+description: Focused C++ study cards covering Copy Construction and Copy Assignment.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '05.1'
+  topic: Copy Construction and Copy Assignment
+  question: How do copy construction and copy assignment differ?
+  answer: |-
+    Copy construction initializes a new object from another object. Copy assignment replaces the state of an existing object.
+
+    **More detail:** The distinction determines which special member is selected and whether a destination's old resources must first be released.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.2'
+  topic: Copy Construction and Copy Assignment
+  question: Why is a copy constructor normally `Foo(const Foo&)`?
+  answer: |-
+    Passing by reference avoids recursive copying, and const permits copying from const objects and ordinary lvalues.
+
+    **More detail:** A const lvalue reference avoids making a copy just to enter the copy constructor and supports ordinary source objects.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.3'
+  topic: Copy Construction and Copy Assignment
+  question: What does compiler-generated copying do?
+  answer: |-
+    It copies each direct base and non-static data member using that subobject’s copy operation.
+
+    **More detail:** Memberwise copying is recursive: each base and member applies its own copy semantics to its corresponding subobject.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.4'
+  topic: Copy Construction and Copy Assignment
+  question: When is memberwise copy correct?
+  answer: |-
+    When every base and member already has the desired copy semantics—for example, value-like members such as `string`, `vector`, and other Rule-of-Zero types.
+
+    **More detail:** Members such as `std::vector` own and copy their contents correctly, so the compiler-generated operation usually expresses value semantics.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.5'
+  topic: Copy Construction and Copy Assignment
+  question: Why is generated copying dangerous for an owning raw pointer?
+  answer: |-
+    It copies only the address, so two objects may believe they own the same allocation, causing aliasing, double deletion, use-after-free, or leaks.
+
+    **More detail:** Both copies may later free the same address; use a value-owning member or define a deliberate deep-copy/unique-ownership policy.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.6'
+  topic: Copy Construction and Copy Assignment
+  question: What is a deep copy?
+  answer: |-
+    It creates a distinct owned resource and copies the resource’s contents, so the two objects can be modified and destroyed independently.
+
+    **More detail:** A deep copy gives each object independent owned storage, so updates and destruction of one do not affect the other.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.7'
+  topic: Copy Construction and Copy Assignment
+  question: What must copy assignment handle?
+  answer: |-
+    Existing owned state, self-assignment, exception safety, and a valid result if resource acquisition fails. It conventionally returns `*this` by reference.
+
+    **More detail:** Acquire replacement resources safely before discarding old state, so failure does not leave the destination invalid or leak memory.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.8'
+  topic: Copy Construction and Copy Assignment
+  question: What does the copy-and-swap idiom provide?
+  answer: |-
+    Construct a safe copy first, then swap it with the target. This naturally handles self-assignment and can provide the strong exception guarantee, at a possible extra-allocation or performance cost.
+
+    **More detail:** The temporary copy is built before the swap, so a copy failure leaves the target unchanged; this guarantee may cost an allocation.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.9'
+  topic: Copy Construction and Copy Assignment
+  question: When should copying be deleted?
+  answer: |-
+    When a resource has unique identity or cannot be meaningfully duplicated, such as many mutexes, threads, hardware channels, or unique OS handles.
+
+    **More detail:** Deleting copy operations prevents accidental duplication at compile time; moving may still be allowed if transfer is meaningful.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.10'
+  topic: Copy Construction and Copy Assignment
+  question: How can declaring special members affect moves?
+  answer: |-
+    User-declared copy operations or a destructor can suppress implicit move generation. Explicitly default, delete, or implement operations according to the intended ownership model.
+
+    **More detail:** A user-declared destructor is often a signal to review all copy and move operations rather than assuming moves will be generated.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.11'
+  topic: Copy Construction and Copy Assignment
+  question: What is object slicing?
+  answer: |-
+    Copying a derived object into a base object by value discards the derived portion. For polymorphic copying, consider an explicit virtual `clone()` interface.
+
+    **More detail:** Slicing loses derived state and dynamic behavior; polymorphic APIs should generally pass or own objects through pointers or references.
+  source: 05_copy_constructor_and_copy_assignment.md
+- id: '05.12'
+  topic: Copy Construction and Copy Assignment
+  question: What is the preferred modern copy-design rule?
+  answer: |-
+    Rule of Zero: compose the type from members whose ownership, copy, move, and destruction behavior are already correct.
+
+    **More detail:** The Rule of Zero reduces custom lifetime code, which in turn reduces exception-safety and maintenance risks.
+  source: 05_copy_constructor_and_copy_assignment.md
+assets: {}

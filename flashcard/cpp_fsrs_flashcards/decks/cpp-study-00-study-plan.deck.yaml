@@ -1,0 +1,113 @@
+format_version: 1
+id: cpp-study-00-study-plan
+title: 'C++ Study: C++ Study Plan'
+description: Focused C++ study cards covering C++ Study Plan.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '00.1'
+  topic: C++ Study Plan
+  question: What five areas should a C++ study plan cover?
+  answer: |-
+    Modern C++; data structures and algorithms; OOP and software design; operating systems, concurrency, and embedded systems; and embedded/autonomous-system design and debugging.
+
+    **More detail:** These areas reinforce one another: strong language fundamentals help you reason about algorithms, and systems context helps you explain real tradeoffs.
+  source: C++ study notes
+- id: '00.2'
+  topic: C++ Study Plan
+  question: What is the recommended preparation-time split?
+  answer: |-
+    - Data structures and algorithms: 35%
+    - Modern C++: 25%
+    - Embedded, OS, and concurrency: 20%
+    - OOP and design: 10%
+    - System design, behavioral preparation, and applications: 10%
+
+    **More detail:** Treat these percentages as a starting point, then shift time toward weak areas based on timed practice and review results.
+  source: C++ study notes
+- id: '00.3'
+  topic: C++ Study Plan
+  question: What should a strong coding-problem workflow look like?
+  answer: |-
+    Clarify requirements, give a brute-force solution, derive an optimized solution, state invariants, implement cleanly, test edge cases, and explain time and space complexity.
+
+    **More detail:** State input constraints and edge cases before coding; after implementation, test both representative cases and boundary conditions.
+  source: C++ study notes
+- id: '00.4'
+  topic: C++ Study Plan
+  question: What are the Rule of Three, Rule of Five, and Rule of Zero?
+  answer: |-
+    - Rule of Three: if a type needs a custom destructor, copy constructor, or copy assignment, it often needs all three.
+    - Rule of Five: add move constructor and move assignment.
+    - Rule of Zero: prefer members that manage their own resources so the class declares none of these operations.
+
+    **More detail:** These rules matter most when a class directly manages a resource; standard RAII members often make the Rule of Zero possible.
+  source: C++ study notes
+- id: '00.5'
+  topic: C++ Study Plan
+  question: What is RAII?
+  answer: |-
+    Resource Acquisition Is Initialization ties resource ownership to object lifetime: acquire during construction, release during destruction. It provides deterministic cleanup during normal exit and exception unwinding.
+
+    **More detail:** Examples include `std::lock_guard` releasing a mutex and `std::unique_ptr` deleting its object when the owner leaves scope.
+  source: C++ study notes
+- id: '00.6'
+  topic: C++ Study Plan
+  question: When should you use `unique_ptr`, `shared_ptr`, and `weak_ptr`?
+  answer: |-
+    Use `unique_ptr` for exclusive ownership, `shared_ptr` only for genuine shared lifetime, and `weak_ptr` for non-owning observation of shared state or to break ownership cycles.
+
+    **More detail:** Prefer `unique_ptr` until sharing is required; a `weak_ptr` must be locked to obtain a temporary `shared_ptr` before use.
+  source: C++ study notes
+- id: '00.7'
+  topic: C++ Study Plan
+  question: What are the core SOLID principles?
+  answer: |-
+    Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion. They guide maintainable interfaces, but should be applied according to the design rather than mechanically.
+
+    **More detail:** Use the principles to evaluate coupling and changeability, not as a requirement to create extra classes or layers.
+  source: C++ study notes
+- id: '00.8'
+  topic: C++ Study Plan
+  question: Why prefer composition over inheritance?
+  answer: |-
+    Composition usually creates looser coupling, explicit ownership, and replaceable behavior. Use inheritance when there is a genuine substitutable “is-a” relationship or a required polymorphic interface.
+
+    **More detail:** Composition delegates work to owned or borrowed components; inheritance should preserve the base type's behavioral contract.
+  source: C++ study notes
+- id: '00.9'
+  topic: C++ Study Plan
+  question: What algorithm patterns should be immediately recognizable?
+  answer: |-
+    Hashing, two pointers, sliding window, prefix sums, binary search, DFS/BFS, heaps, interval processing, greedy choice, backtracking, and dynamic programming.
+
+    **More detail:** Pattern recognition is a starting hypothesis; verify the pattern against the input constraints and prove its correctness.
+  source: C++ study notes
+- id: '00.10'
+  topic: C++ Study Plan
+  question: What must be stated when discussing a concurrent design?
+  answer: |-
+    Shared state, synchronization mechanism, ownership and lifetime, ordering requirements, data-race prevention, deadlock risks, blocking behavior, and shutdown/cancellation behavior.
+
+    **More detail:** A complete design also identifies who owns shared objects and how shutdown waits for workers to stop safely.
+  source: C++ study notes
+- id: '00.11'
+  topic: C++ Study Plan
+  question: What changes when evaluating code for embedded or real-time use?
+  answer: |-
+    Consider deterministic timing, bounded memory use, allocation policy, interrupt context, hardware access, concurrency, error recovery, watchdogs, and worst-case rather than average-case behavior.
+
+    **More detail:** For hard real-time paths, justify worst-case execution time and memory behavior rather than relying only on average benchmarks.
+  source: C++ study notes
+- id: '00.12'
+  topic: C++ Study Plan
+  question: When are you ready to apply what you have studied?
+  answer: |-
+    When you can solve unfamiliar problems while communicating clearly, write and debug modern C++, reason about ownership and concurrency, discuss embedded tradeoffs, and explain prior projects and failures with evidence.
+
+    **More detail:** Readiness is demonstrated by repeatable performance on unfamiliar tasks, not by finishing a fixed reading list.
+  source: C++ study notes
+assets: {}

@@ -1,0 +1,107 @@
+format_version: 1
+id: cpp-study-07-static-explicit-and-friend
+title: 'C++ Study: `static`, `explicit`, and `friend`'
+description: Focused C++ study cards covering `static`, `explicit`, and `friend`.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '07.1'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What three separate concepts are often confused around `static`?
+  answer: |-
+    Storage duration answers how long storage exists; scope answers where a name is visible; linkage answers whether declarations in different places name the same entity.
+
+    **More detail:** These are independent properties: a name can have local scope while referring to storage that persists for the entire program.
+  source: 07_static_explicit_friend.md
+- id: '07.2'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What does a function-local static mean?
+  answer: |-
+    It has block scope, is initialized once when control first reaches the declaration, and has static storage duration, so it persists across calls.
+
+    **More detail:** Its initialization occurs on the first pass through the declaration, and the initialized object remains alive until program termination.
+  source: 07_static_explicit_friend.md
+- id: '07.3'
+  topic: '`static`, `explicit`, and `friend`'
+  question: Is function-local static initialization thread-safe?
+  answer: |-
+    Since C++11, initialization is thread-safe. Later reads and writes to the object are not automatically synchronized.
+
+    **More detail:** The guarantee covers one-time initialization only; concurrent mutation of the initialized object still needs synchronization.
+  source: 07_static_explicit_friend.md
+- id: '07.4'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What is a static data member?
+  answer: |-
+    One class-associated object shared by all instances rather than a separate member inside each instance.
+
+    **More detail:** A static data member is not stored separately inside each object, so changing it affects the shared class-level state.
+  source: 07_static_explicit_friend.md
+- id: '07.5'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What restriction does a static member function have?
+  answer: |-
+    It has no implicit object and no `this` pointer, so it directly accesses only static members unless given an object explicitly.
+
+    **More detail:** A static function can be called without an instance, but it needs an object parameter to access non-static state.
+  source: 07_static_explicit_friend.md
+- id: '07.6'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What does namespace-scope `static` mean?
+  answer: |-
+    It gives the declared name internal linkage, restricting it to the translation unit. An unnamed namespace is generally the more idiomatic C++ choice.
+
+    **More detail:** Internal linkage prevents other translation units from naming that entity; unnamed namespaces are the common C++ alternative.
+  source: 07_static_explicit_friend.md
+- id: '07.7'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What problem does construct-on-first-use address?
+  answer: |-
+    A function-local static delays construction until first use, helping avoid cross-translation-unit static initialization-order problems.
+
+    **More detail:** The object is initialized when first requested rather than during cross-file static initialization, reducing initialization-order hazards.
+  source: 07_static_explicit_friend.md
+- id: '07.8'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What does `explicit` prevent?
+  answer: |-
+    It prevents the constructor or conversion operator from participating in unintended implicit conversions while still allowing appropriate direct or explicit use.
+
+    **More detail:** Explicit conversions remain available at the call site, so intentional conversion is possible without silently changing overload selection.
+  source: 07_static_explicit_friend.md
+- id: '07.9'
+  topic: '`static`, `explicit`, and `friend`'
+  question: Does `explicit` reject direct initialization?
+  answer: |-
+    No. `Type x{arg};` may call an explicit constructor; copy-initialization such as `Type x = arg;` may not use it as an implicit conversion.
+
+    **More detail:** Direct-list and direct initialization can use an explicit constructor; copy-initialization cannot use it as an implicit conversion.
+  source: 07_static_explicit_friend.md
+- id: '07.10'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What is a friend function?
+  answer: |-
+    A non-member function granted access to a class’s private and protected members.
+
+    **More detail:** Friendship grants access but does not make the function a member; it still has ordinary non-member calling and overload behavior.
+  source: 07_static_explicit_friend.md
+- id: '07.11'
+  topic: '`static`, `explicit`, and `friend`'
+  question: Is friendship inherited, transitive, or reciprocal?
+  answer: |-
+    No. Each friendship grant is explicit and limited to the named friend.
+
+    **More detail:** If another class needs access, it must receive its own explicit friendship grant from the class that owns the private data.
+  source: 07_static_explicit_friend.md
+- id: '07.12'
+  topic: '`static`, `explicit`, and `friend`'
+  question: What is a hidden friend?
+  answer: |-
+    A friend function defined or declared inside a class and primarily found through ADL. It is useful for symmetric operators without broadly polluting ordinary lookup.
+
+    **More detail:** Because ADL finds the function through its argument types, the hidden friend is available to relevant calls without broad namespace visibility.
+  source: 07_static_explicit_friend.md
+assets: {}

@@ -1,0 +1,107 @@
+format_version: 1
+id: cpp-study-06-namespaces-and-overloading
+title: 'C++ Study: Namespaces and Overloading'
+description: Focused C++ study cards covering Namespaces and Overloading.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 12
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: '06.1'
+  topic: Namespaces and Overloading
+  question: What problem do namespaces solve?
+  answer: |-
+    They organize names and prevent collisions between components without creating objects or runtime overhead.
+
+    **More detail:** Qualified names such as `sensor::read` make ownership of names explicit and allow independent libraries to reuse common identifiers.
+  source: 06_namespaces_and_overloading.md
+- id: '06.2'
+  topic: Namespaces and Overloading
+  question: Why avoid `using namespace ...` in a header?
+  answer: |-
+    It imports names into every including translation unit, potentially creating collisions, ambiguities, and changed overload sets far from the header.
+
+    **More detail:** Headers are included into many translation units, so a using-directive there can unexpectedly affect unrelated client code.
+  source: 06_namespaces_and_overloading.md
+- id: '06.3'
+  topic: Namespaces and Overloading
+  question: What does an unnamed namespace provide?
+  answer: |-
+    Internal linkage for names within one translation unit. It is generally preferred to namespace-scope `static` for C++ implementation-only names.
+
+    **More detail:** Names in an unnamed namespace are private to that translation unit and cannot be linked as the same entity from another one.
+  source: 06_namespaces_and_overloading.md
+- id: '06.4'
+  topic: Namespaces and Overloading
+  question: What is argument-dependent lookup (ADL)?
+  answer: |-
+    For an unqualified function call, ADL also searches namespaces and classes associated with the argument types. It is important for operators, customization functions, and swap-style calls.
+
+    **More detail:** ADL enables calls such as `swap(a, b)` to find operations associated with argument types without qualifying a namespace at the call site.
+  source: 06_namespaces_and_overloading.md
+- id: '06.5'
+  topic: Namespaces and Overloading
+  question: What makes two function declarations overloads?
+  answer: |-
+    They share a name in the relevant scope but have distinct parameter-type lists or, for members, distinct qualifying forms such as trailing const or reference qualification.
+
+    **More detail:** The parameter list or member cv/ref qualification must differ in a way the language recognizes; return type alone is insufficient.
+  source: 06_namespaces_and_overloading.md
+- id: '06.6'
+  topic: Namespaces and Overloading
+  question: Can return type alone distinguish overloads?
+  answer: |-
+    No, because a call must be resolved before its return value can select a function.
+
+    **More detail:** The compiler resolves the call before considering how its result is used, so return types cannot disambiguate otherwise identical candidates.
+  source: 06_namespaces_and_overloading.md
+- id: '06.7'
+  topic: Namespaces and Overloading
+  question: What are the main steps of overload resolution?
+  answer: |-
+    Build the candidate set, keep viable functions, rank required conversions, and select one unique best match. Otherwise the call is ill-formed.
+
+    **More detail:** If no unique best viable candidate exists, the call is ambiguous and must be corrected with better types or explicit qualification.
+  source: 06_namespaces_and_overloading.md
+- id: '06.8'
+  topic: Namespaces and Overloading
+  question: How are common implicit conversions ranked?
+  answer: |-
+    Exact matches beat promotions; promotions beat other standard conversions; standard conversions generally beat user-defined conversions.
+
+    **More detail:** This ranking is a useful summary; ties, reference binding, list-initialization, and user-defined conversions have additional rules.
+  source: 06_namespaces_and_overloading.md
+- id: '06.9'
+  topic: Namespaces and Overloading
+  question: How can a derived declaration hide base overloads?
+  answer: |-
+    Declaring any function with the same name in the derived class can hide the entire base overload set. Use `using Base::function;` to restore it when intended.
+
+    **More detail:** The `using` declaration adds the base overload set to derived lookup, after which normal overload resolution can select among candidates.
+  source: 06_namespaces_and_overloading.md
+- id: '06.10'
+  topic: Namespaces and Overloading
+  question: What can operator overloading not change?
+  answer: |-
+    It cannot invent new operators or change an operator’s precedence, associativity, arity, or evaluation rules.
+
+    **More detail:** Overloaded operators retain the language's built-in precedence and evaluation model, so they cannot alter parsing or sequencing rules.
+  source: 06_namespaces_and_overloading.md
+- id: '06.11'
+  topic: Namespaces and Overloading
+  question: When should an operator be a non-member?
+  answer: |-
+    Use a non-member for symmetric binary operations when the left operand need not be the class type, often implemented as a hidden friend when private access is appropriate.
+
+    **More detail:** A non-member can support conversions on either operand; a hidden friend limits ordinary lookup while remaining discoverable by ADL.
+  source: 06_namespaces_and_overloading.md
+- id: '06.12'
+  topic: Namespaces and Overloading
+  question: What is the main operator-design rule?
+  answer: |-
+    Define an operator only when its meaning is natural, unsurprising, and consistent with the built-in operator’s conceptual behavior.
+
+    **More detail:** Surprising operators make code harder to read and can violate users' expectations about familiar syntax.
+  source: 06_namespaces_and_overloading.md
+assets: {}
