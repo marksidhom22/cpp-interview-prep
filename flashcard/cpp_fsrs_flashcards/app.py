@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Flask, abort, flash, g, make_response, redirect, render_template, request, session, url_for
 from fsrs import Scheduler
+from waitress import serve
 
 from src.content import fetch_link_preview, plain_speech_text, render_rich_markdown
 from src.storage import (
@@ -463,4 +464,9 @@ app.jinja_env.globals["next_card_id"] = next_card_id
 
 
 if __name__ == "__main__":
-    app.run(host=os.environ.get("FLASK_HOST", "127.0.0.1"), port=int(os.environ.get("FLASK_PORT", "5000")), debug=False)
+    serve(
+        app,
+        host=os.environ.get("FLASK_HOST", "127.0.0.1"),
+        port=int(os.environ.get("FLASK_PORT", "5000")),
+        threads=int(os.environ.get("FLASK_THREADS", "4")),
+    )

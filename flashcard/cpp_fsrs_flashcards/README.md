@@ -35,6 +35,75 @@ After setup, launch it with:
 
 Progress is stored inside the corresponding file in `decks/`.
 
+## Raspberry Pi (32-bit) deployment
+
+Use Raspberry Pi OS Lite 32-bit with Python 3.10 or newer. FSRS 6 requires Python 3.10+, and a 32-bit image may need to compile some packages during installation. Check the Pi before installing:
+
+```bash
+uname -m
+getconf LONG_BIT
+python3 --version
+```
+
+`getconf LONG_BIT` must print `32`, and `python3 --version` must be at least `3.10`. If your OS provides an older Python, install a current 32-bit Raspberry Pi OS image or install Python 3.10+ alongside the system Python; do not replace the OS-managed interpreter.
+
+Install the prerequisites and clone the repository:
+
+```bash
+sudo apt update
+sudo apt install --yes git python3 python3-venv python3-pip python3-dev build-essential libyaml-dev openssl
+sudo useradd --system --home-dir /var/lib/recall-studio --create-home --shell /usr/sbin/nologin recall
+sudo git clone https://github.com/marksidhom22/cpp-interview-prep.git /opt/recall-studio
+cd /opt/recall-studio/flashcard/cpp_fsrs_flashcards
+sudo python3 -m venv .venv
+sudo .venv/bin/python -m pip install --upgrade pip
+sudo .venv/bin/python -m pip install -r requirements.txt
+```
+
+Keep mutable deck data outside the checkout so code updates cannot overwrite study progress. Run this copy only on the first install; do not repeat it when upgrading:
+
+```bash
+sudo install -d -o recall -g recall /var/lib/recall-studio/decks
+sudo cp -a decks/. /var/lib/recall-studio/decks/
+sudo chown -R recall:recall /var/lib/recall-studio
+sudo sh -c 'umask 077; printf "FLASHCARDS_SECRET_KEY=%s\nFLASHCARDS_DECKS_DIR=/var/lib/recall-studio/decks\n" "$(openssl rand -hex 32)" > /etc/recall-studio.env'
+```
+
+Install and start the provided production service. It runs Waitress as an unprivileged user and listens only on loopback:
+
+```bash
+sudo cp deploy/recall-studio.service /etc/systemd/system/recall-studio.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now recall-studio
+sudo systemctl status recall-studio
+```
+
+To inspect logs, use `sudo journalctl -u recall-studio -f`. For updates, pull the repository, reinstall requirements, and restart the service:
+
+```bash
+sudo git -C /opt/recall-studio pull --ff-only
+sudo /opt/recall-studio/flashcard/cpp_fsrs_flashcards/.venv/bin/python -m pip install -r /opt/recall-studio/flashcard/cpp_fsrs_flashcards/requirements.txt
+sudo systemctl restart recall-studio
+```
+
+### Private remote access
+
+The app has no user login, so do not expose port 5000 to the internet, add a router port-forward, or change its listener to `0.0.0.0`. For secure access away from home, install Tailscale on the Pi and your client device, put them in a private tailnet, and restrict SSH access to your own devices. Enable SSH on the Pi and use SSH key authentication:
+
+```bash
+sudo systemctl enable --now ssh
+```
+
+From your client, open an SSH tunnel using the Pi's Tailscale name or IP (replace `pi-user` and `raspberrypi` with your account and Pi name):
+
+```bash
+ssh -N -L 5000:127.0.0.1:5000 pi-user@raspberrypi
+```
+
+Keep that command running and browse to <http://127.0.0.1:5000> on the client. Stop the tunnel with Ctrl+C. The app remains bound to Pi loopback; only the authenticated SSH connection carries remote traffic.
+
+To run manually for a local test instead of installing the service, activate the same virtual environment and run `python app.py`. The default listener is `127.0.0.1:5000`; `FLASK_HOST`, `FLASK_PORT`, and `FLASK_THREADS` can override it.
+
 ## Library layout
 
 ```text
