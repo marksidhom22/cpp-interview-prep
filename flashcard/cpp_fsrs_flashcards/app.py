@@ -144,6 +144,8 @@ def clear_study_state() -> None:
         "current_card_kind",
         "answer_revealed",
         "card_started_at",
+        "editing_study_card_id",
+        "deleting_study_card_id",
     ):
         st.session_state.pop(key, None)
 
@@ -237,6 +239,8 @@ def select_and_introduce(
 
 def render_study_page(deck: Deck, cards: list[StudyCard], repository: ProgressRepository) -> None:
     page_header("Adaptive review", deck.title, "Answer from memory, reveal, then rate your recall.")
+    if message := st.session_state.pop("study_card_saved_message", None):
+        st.success(message)
     if not cards:
         st.info("This deck has no cards yet.")
         if st.button("Add the first card", type="primary"):
@@ -305,6 +309,81 @@ def render_study_page(deck: Deck, cards: list[StudyCard], repository: ProgressRe
 
     st.caption(f"{selected.kind} · {card.card_id} · {card.topic}")
     render_question(deck, card, autoplay=question_autoplay)
+
+    editing_card_id = st.session_state.get("editing_study_card_id")
+    deleting_card_id = st.session_state.get("deleting_study_card_id")
+    if editing_card_id == card.card_id:
+        with st.container(border=True):
+            heading, action = st.columns([4, 1])
+            heading.markdown("### Edit this card")
+            if action.button(
+                "Cancel",
+                key=f"cancel-study-edit:{deck.deck_id}:{card.card_id}",
+                width="stretch",
+            ):
+                st.session_state.pop("editing_study_card_id", None)
+                st.rerun()
+            st.caption(
+                "Saving changes the card content only. Its review timing, history, and "
+                "position in this study session stay unchanged."
+            )
+            card_form(
+                deck,
+                cards,
+                card,
+                form_context="study",
+                preserve_study=True,
+            )
+    elif deleting_card_id == card.card_id:
+        with st.container(border=True):
+            st.markdown("### Delete this card?")
+            st.warning(
+                "This removes the card, its study timing and review history, and any "
+                "images uploaded specifically for it. This cannot be undone in the app."
+            )
+            confirmed = st.checkbox(
+                f"I want to permanently delete {card.card_id}",
+                key=f"confirm-study-delete:{deck.deck_id}:{card.card_id}",
+            )
+            cancel, remove = st.columns(2)
+            if cancel.button(
+                "Cancel",
+                key=f"cancel-study-delete:{deck.deck_id}:{card.card_id}",
+                width="stretch",
+            ):
+                st.session_state.pop("deleting_study_card_id", None)
+                st.rerun()
+            if remove.button(
+                "Delete permanently",
+                key=f"delete-study-card:{deck.deck_id}:{card.card_id}",
+                type="primary",
+                disabled=not confirmed,
+                width="stretch",
+            ):
+                deleted_card_id = card.card_id
+                delete_card(deck, card)
+                clear_study_state()
+                st.session_state.study_card_saved_message = (
+                    f"Deleted {deleted_card_id}. Its study history was also removed."
+                )
+                st.rerun()
+    else:
+        edit_action, delete_action = st.columns(2)
+        if edit_action.button(
+            "Edit this card",
+            key=f"edit-study-card:{deck.deck_id}:{card.card_id}",
+            icon="✏️",
+            width="stretch",
+        ):
+            st.session_state.editing_study_card_id = card.card_id
+            st.rerun()
+        if delete_action.button(
+            "Delete this card",
+            key=f"start-delete-study-card:{deck.deck_id}:{card.card_id}",
+            width="stretch",
+        ):
+            st.session_state.deleting_study_card_id = card.card_id
+            st.rerun()
 
     if not st.session_state.get("answer_revealed", False):
         if st.button("Reveal answer", type="primary", width="stretch"):
@@ -379,12 +458,22 @@ def render_study_page(deck: Deck, cards: list[StudyCard], repository: ProgressRe
         st.caption(f"Source · {card.source}")
 
 
-def card_form(deck: Deck, cards: list[StudyCard], card: StudyCard | None = None) -> None:
+def card_form(
+    deck: Deck,
+    cards: list[StudyCard],
+    card: StudyCard | None = None,
+    *,
+    form_context: str = "cards",
+    preserve_study: bool = False,
+) -> None:
     editing = card is not None
     suggested_id = card.card_id if card else next_card_id(cards)
     default_topic = card.topic if card else "General"
 
-    with st.form(f"card-form:{deck.deck_id}:{suggested_id}", clear_on_submit=not editing):
+    with st.form(
+        f"card-form:{form_context}:{deck.deck_id}:{suggested_id}",
+        clear_on_submit=not editing,
+    ):
         first, second = st.columns([1, 2])
         card_id = first.text_input("Stable card ID", value=suggested_id, disabled=editing)
         topic = second.text_input("Topic", value=default_topic)
@@ -414,36 +503,36 @@ def card_form(deck: Deck, cards: list[StudyCard], card: StudyCard | None = None)
                 "Upload images",
                 type=["png", "jpg", "jpeg", "webp", "gif"],
                 accept_multiple_files=True,
-                key=f"images:{deck.deck_id}:{suggested_id}",
+                key=f"{form_context}:images:{deck.deck_id}:{suggested_id}",
             )
             upload_placement = st.radio(
                 "Place uploaded images in",
                 ("Answer", "Question"),
                 horizontal=True,
-                key=f"upload-placement:{deck.deck_id}:{suggested_id}",
+                key=f"{form_context}:upload-placement:{deck.deck_id}:{suggested_id}",
             )
             remote_images = st.text_area(
                 "Remote image URLs (one per line)",
                 height=80,
-                key=f"remote-images:{deck.deck_id}:{suggested_id}",
+                key=f"{form_context}:remote-images:{deck.deck_id}:{suggested_id}",
             )
             remote_placement = st.radio(
                 "Place remote images in",
                 ("Answer", "Question"),
                 horizontal=True,
-                key=f"remote-placement:{deck.deck_id}:{suggested_id}",
+                key=f"{form_context}:remote-placement:{deck.deck_id}:{suggested_id}",
             )
             mermaid = st.text_area(
                 "Mermaid diagram source",
                 height=150,
                 placeholder="flowchart LR\n  A[Question] --> B[Answer]",
-                key=f"mermaid:{deck.deck_id}:{suggested_id}",
+                key=f"{form_context}:mermaid:{deck.deck_id}:{suggested_id}",
             )
             mermaid_placement = st.radio(
                 "Place Mermaid diagram in",
                 ("Answer", "Question"),
                 horizontal=True,
-                key=f"mermaid-placement:{deck.deck_id}:{suggested_id}",
+                key=f"{form_context}:mermaid-placement:{deck.deck_id}:{suggested_id}",
             )
 
         submitted = st.form_submit_button(
@@ -500,8 +589,16 @@ def card_form(deck: Deck, cards: list[StudyCard], card: StudyCard | None = None)
             source=card.source if card else None,
             existing_path=card.path if card else None,
         )
-        clear_study_state()
-        st.session_state.card_saved_message = f"Saved {card_id}."
+        if preserve_study:
+            st.session_state.pop("editing_study_card_id", None)
+            st.session_state.pop(f"question-spoken:{deck.deck_id}:{card_id.strip()}", None)
+            st.session_state.pop(f"answer-spoken:{deck.deck_id}:{card_id.strip()}", None)
+            st.session_state.study_card_saved_message = (
+                f"Saved {card_id}. Study progress and timing were preserved."
+            )
+        else:
+            clear_study_state()
+            st.session_state.card_saved_message = f"Saved {card_id}."
         st.rerun()
     except Exception as exc:
         st.error(str(exc))

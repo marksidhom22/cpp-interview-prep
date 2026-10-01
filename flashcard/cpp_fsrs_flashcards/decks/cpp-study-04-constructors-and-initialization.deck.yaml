@@ -12,113 +12,841 @@ cards:
   topic: Constructors, Destructors, and Initialization
   question: What is the difference between allocation and construction?
   answer: |-
+    ## Short answer
+
     Allocation obtains raw storage. Construction establishes a live object in that storage by initializing bases and members and executing the constructor when required.
 
-    **More detail:** Storage can exist before an object lifetime begins, for example in raw storage; construction establishes the object's valid state.
+    ## Detailed answer
+
+    These terms describe different parts of an object's life.
+
+    | Term | Meaning |
+    |---|---|
+    | Storage | Bytes with sufficient size and alignment |
+    | Allocation | Obtaining storage |
+    | Initialization | Giving an object or subobject its initial state |
+    | Construction | Establishing a live class object, including base/member initialization and constructor execution |
+    | Assignment | Replacing state of an object that already exists |
+    | Destruction | Ending a class object's lifetime and running cleanup |
+    | Deallocation | Returning storage |
+
+    Consider:
+
+    ```cpp
+    Device device{42};
+    ```
+
+    For an automatic object, the implementation reserves storage, initializes the object's bases and members, and executes the constructor. It later runs the destructor at scope exit. The compiler may optimize the machine instructions, but these language-level effects must be preserved.
+
+    Dynamic construction combines allocation and construction:
+
+    ```cpp
+    Device* device = new Device{42};
+    ```
+
+    The `new` expression conceptually:
+
+    1. Calls an allocation function to obtain storage.
+    2. Constructs `Device` in that storage.
+    3. Produces a pointer to the object.
+
+    `delete device` conceptually destroys the object and then deallocates its storage.
+
+    Modern code usually represents exclusive dynamic ownership with:
+
+    ```cpp
+    auto device = std::make_unique<Device>(42);
+    ```
+
+    ### Construction does not always emit a function call
+
+    For trivial types, construction may amount to simple stores or no instructions. "Construct" is an object-model term; it does not promise a literal runtime call.
   source: 04_constructors_destructors_initialization.md
 - id: '04.2'
   topic: Constructors, Destructors, and Initialization
   question: What is the difference between initialization and assignment?
   answer: |-
+    ## Short answer
+
     Initialization establishes an object’s first state as its lifetime begins. Assignment replaces the state of an already-live object.
 
-    **More detail:** Initialization is part of object creation and may invoke a constructor; assignment operates on an already-live destination.
+    ## Detailed answer
+
+    These terms describe different parts of an object's life.
+
+    | Term | Meaning |
+    |---|---|
+    | Storage | Bytes with sufficient size and alignment |
+    | Allocation | Obtaining storage |
+    | Initialization | Giving an object or subobject its initial state |
+    | Construction | Establishing a live class object, including base/member initialization and constructor execution |
+    | Assignment | Replacing state of an object that already exists |
+    | Destruction | Ending a class object's lifetime and running cleanup |
+    | Deallocation | Returning storage |
+
+    Consider:
+
+    ```cpp
+    Device device{42};
+    ```
+
+    For an automatic object, the implementation reserves storage, initializes the object's bases and members, and executes the constructor. It later runs the destructor at scope exit. The compiler may optimize the machine instructions, but these language-level effects must be preserved.
+
+    Dynamic construction combines allocation and construction:
+
+    ```cpp
+    Device* device = new Device{42};
+    ```
+
+    The `new` expression conceptually:
+
+    1. Calls an allocation function to obtain storage.
+    2. Constructs `Device` in that storage.
+    3. Produces a pointer to the object.
+
+    `delete device` conceptually destroys the object and then deallocates its storage.
+
+    Modern code usually represents exclusive dynamic ownership with:
+
+    ```cpp
+    auto device = std::make_unique<Device>(42);
+    ```
+
+    ### Construction does not always emit a function call
+
+    For trivial types, construction may amount to simple stores or no instructions. "Construct" is an object-model term; it does not promise a literal runtime call.
+
+    C++ has several initialization syntaxes whose differences matter.
+
+    ### Default-initialization
+
+    ```cpp
+    Widget widget;
+    ```
+
+    For a class, this invokes a default constructor. For a local built-in scalar with no initializer:
+
+    ```cpp
+    int value; // indeterminate
+    ```
+
+    Reading the indeterminate value is invalid.
+
+    ### Value-initialization
+
+    ```cpp
+    Widget widget{};
+    int value{}; // zero
+    ```
+
+    Braces are a reliable way to request initialization. For scalar types, `{}` produces zero initialization.
+
+    ### Direct-initialization
+
+    ```cpp
+    Widget widget(argument);
+    Widget widget2{argument};
+    ```
+
+    The constructor is selected directly. Braces additionally reject narrowing conversions in list-initialization:
+
+    ```cpp
+    int x{3.5}; // error: narrowing
+    ```
+
+    ### Copy-initialization
+
+    ```cpp
+    Widget copy = original;
+    ```
+
+    Despite the `=`, this initializes a new object. It is not assignment.
+
+    ```cpp
+    Widget copy;
+    copy = original; // assignment
+    ```
+
+    Copy-initialization does not use explicit converting constructors, whereas direct-initialization can.
+
+    ### Aggregate initialization
+
+    An aggregate can initialize public members directly:
+
+    ```cpp
+    struct Point {
+        int x;
+        int y;
+    };
+
+    Point point{10, 20};
+    ```
+
+    Adding private members, certain constructors, base conditions, or virtual functions can change aggregate status; exact rules depend on the C++ standard version.
+
+    ### `auto` and initializer lists
+
+    ```cpp
+    auto a = 1;   // int
+    auto b{1};    // int
+    auto c = {1}; // std::initializer_list<int>
+    ```
+
+    Brace deduction has special cases. Do not assume all visually similar forms have the same type.
   source: 04_constructors_destructors_initialization.md
 - id: '04.3'
   topic: Constructors, Destructors, and Initialization
   question: What does `Widget w = other;` mean?
   answer: |-
+    ## Short answer
+
     It is copy-initialization of a new object, not assignment. `w = other;` is assignment only if `w` already exists.
 
-    **More detail:** The declaration creates `w` by invoking copy initialization; only a later assignment expression targets an existing `w`.
+    ## Detailed answer
+
+    C++ has several initialization syntaxes whose differences matter.
+
+    ### Default-initialization
+
+    ```cpp
+    Widget widget;
+    ```
+
+    For a class, this invokes a default constructor. For a local built-in scalar with no initializer:
+
+    ```cpp
+    int value; // indeterminate
+    ```
+
+    Reading the indeterminate value is invalid.
+
+    ### Value-initialization
+
+    ```cpp
+    Widget widget{};
+    int value{}; // zero
+    ```
+
+    Braces are a reliable way to request initialization. For scalar types, `{}` produces zero initialization.
+
+    ### Direct-initialization
+
+    ```cpp
+    Widget widget(argument);
+    Widget widget2{argument};
+    ```
+
+    The constructor is selected directly. Braces additionally reject narrowing conversions in list-initialization:
+
+    ```cpp
+    int x{3.5}; // error: narrowing
+    ```
+
+    ### Copy-initialization
+
+    ```cpp
+    Widget copy = original;
+    ```
+
+    Despite the `=`, this initializes a new object. It is not assignment.
+
+    ```cpp
+    Widget copy;
+    copy = original; // assignment
+    ```
+
+    Copy-initialization does not use explicit converting constructors, whereas direct-initialization can.
+
+    ### Aggregate initialization
+
+    An aggregate can initialize public members directly:
+
+    ```cpp
+    struct Point {
+        int x;
+        int y;
+    };
+
+    Point point{10, 20};
+    ```
+
+    Adding private members, certain constructors, base conditions, or virtual functions can change aggregate status; exact rules depend on the C++ standard version.
+
+    ### `auto` and initializer lists
+
+    ```cpp
+    auto a = 1;   // int
+    auto b{1};    // int
+    auto c = {1}; // std::initializer_list<int>
+    ```
+
+    Brace deduction has special cases. Do not assume all visually similar forms have the same type.
   source: 04_constructors_destructors_initialization.md
 - id: '04.4'
   topic: Constructors, Destructors, and Initialization
   question: Why prefer member initializer lists?
   answer: |-
+    ## Short answer
+
     They directly initialize members and are required for bases, references, const members, and members without suitable default constructors. Assignment in the body happens too late for these cases.
 
-    **More detail:** Direct member initialization avoids constructing a default value and then assigning, and it supports members that cannot be default-constructed.
+    ## Detailed answer
+
+    ```cpp
+    class Device {
+    public:
+        Device(int id, std::string name)
+            : id_{id},
+              name_{std::move(name)} {}
+
+    private:
+        int id_;
+        std::string name_;
+    };
+    ```
+
+    The initializer list appears after the constructor parameter list and before the body.
+
+    ### Direct initialization versus assignment
+
+    Initializer list:
+
+    ```cpp
+    Device(const std::string& name)
+        : name_{name} {}
+    ```
+
+    `name_` is copy-constructed directly.
+
+    Constructor-body assignment:
+
+    ```cpp
+    Device(const std::string& name) {
+        name_ = name;
+    }
+    ```
+
+    Before the body, `name_` has already been default-constructed as an empty string. The body then copy-assigns it.
+
+    For an `int` without a default member initializer, omission leaves it indeterminate before a later body assignment. For class members, omission invokes their default construction if possible.
+
+    ### Required uses
+
+    Initializer lists are required to select construction for:
+
+    ```cpp
+    const int id_;
+    Driver& driver_;
+    NoDefaultConstructor component_;
+    ```
+
+    They are also where base-class constructors and delegating constructors are selected.
+
+    ### Braces or parentheses
+
+    Both may initialize members:
+
+    ```cpp
+    : id_(id), name_(name)
+    : id_{id}, name_{name}
+    ```
+
+    Braces are popular because they reject narrowing, but `std::initializer_list` constructor preference can make brace behavior surprising for some types such as `std::vector`.
   source: 04_constructors_destructors_initialization.md
 - id: '04.5'
   topic: Constructors, Destructors, and Initialization
   question: What determines data-member initialization order?
   answer: |-
+    ## Short answer
+
     Declaration order inside the class, not the textual order in the constructor’s initializer list.
 
-    **More detail:** The compiler initializes members in declaration order even if the initializer list is written differently; matching the order avoids bugs and warnings.
+    ## Detailed answer
+
+    Initialization order is fixed by the language:
+
+    1. Virtual base classes, when applicable.
+    2. Direct base classes in base-specifier order.
+    3. Non-static data members in declaration order.
+    4. Constructor body.
+
+    The order written in the initializer list does not change it.
+
+    ```cpp
+    class Example {
+    public:
+        Example()
+            : second_{first_},
+              first_{42} {}
+
+    private:
+        int first_;
+        int second_;
+    };
+    ```
+
+    Although the list writes `second_` first, `first_` is declared first and therefore initialized first. This particular code is safe because `first_` is ready before `second_`.
+
+    Reverse the declarations and the code becomes dangerous:
+
+    ```cpp
+    private:
+        int second_;
+        int first_;
+    ```
+
+    Now `second_` initializes first using an indeterminate `first_`.
+
+    ### Best practice
+
+    Write initializer lists in the same order as declarations. Enable compiler warnings for reordered initializers.
+
+    ### Destruction order
+
+    Destruction reverses successful construction:
+
+    1. Destructor body for the most-derived object.
+    2. Members in reverse declaration order.
+    3. Direct bases in reverse order.
+    4. Virtual bases last.
   source: 04_constructors_destructors_initialization.md
 - id: '04.6'
   topic: Constructors, Destructors, and Initialization
   question: What is the construction order in inheritance?
   answer: |-
+    ## Short answer
+
     Virtual bases, direct bases, data members in declaration order, then the constructor body. Destruction reverses the completed construction order.
 
-    **More detail:** The destructor runs in reverse order, so each subobject is torn down while the subobjects it may depend on are still alive.
+    ## Detailed answer
+
+    For:
+
+    ```cpp
+    class BaseA {};
+    class BaseB {};
+    class MemberA {};
+    class MemberB {};
+
+    class Derived : public BaseA, public BaseB {
+        MemberA first_;
+        MemberB second_;
+    };
+    ```
+
+    Construction order is:
+
+    ```text
+    BaseA -> BaseB -> first_ -> second_ -> Derived body
+    ```
+
+    Destruction order is:
+
+    ```text
+    Derived destructor body -> second_ -> first_ -> BaseB -> BaseA
+    ```
+
+    This structure ensures each constructor can rely on its bases and earlier members, and each destructor body can still access its members before they are destroyed.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart TD
+        A[Virtual base classes] --> B[Direct base classes]
+        B --> C[Data members in declaration order]
+        C --> D[Derived constructor body]
+        D --> E[Destruction runs in exact reverse order]
+    ```
   source: 04_constructors_destructors_initialization.md
 - id: '04.7'
   topic: Constructors, Destructors, and Initialization
   question: What happens to an in-class member initializer?
   answer: |-
+    ## Short answer
+
     It supplies a default when a constructor does not explicitly initialize that member. A constructor’s member initializer overrides it.
 
-    **More detail:** An explicit member initializer in a constructor takes precedence over the in-class default for that constructor.
+    ## Detailed answer
+
+    ```cpp
+    class Buffer {
+    private:
+        std::size_t size_{};
+        int data_[10]{};
+    };
+    ```
+
+    These are in-class default member initializers. They apply when a constructor does not explicitly initialize that member.
+
+    ```cpp
+    class Device {
+    public:
+        Device() = default;
+
+        explicit Device(int id)
+            : id_{id} {} // overrides the default of 0
+
+    private:
+        int id_{};
+        bool enabled_{false};
+    };
+    ```
+
+    For `Device{42}`:
+
+    - `id_` uses the constructor initializer `42`.
+    - `enabled_` uses its in-class default `false`.
+
+    ### Benefits
+
+    - Every constructor begins from consistent defaults.
+    - Adding a constructor does not accidentally leave scalars uninitialized.
+    - Boilerplate is reduced.
+    - The member declaration documents the default locally.
+
+    ### Tradeoff
+
+    A default member initializer may hide unnecessary work if every constructor immediately overrides a costly default. Review expensive class-member construction.
   source: 04_constructors_destructors_initialization.md
 - id: '04.8'
   topic: Constructors, Destructors, and Initialization
   question: What is a delegating constructor?
   answer: |-
+    ## Short answer
+
     A constructor that invokes another constructor of the same class, centralizing common initialization and reducing duplicated logic.
 
-    **More detail:** The delegating target constructor completes initialization first, after which the delegating constructor body runs.
+    ## Detailed answer
+
+    One constructor can delegate to another constructor in the same class:
+
+    ```cpp
+    class Socket {
+    public:
+        Socket()
+            : Socket{"127.0.0.1", 8080} {}
+
+        Socket(std::string host, int port)
+            : host_{std::move(host)},
+              port_{port} {}
+
+    private:
+        std::string host_;
+        int port_;
+    };
+    ```
+
+    This centralizes invariant establishment.
+
+    A delegating constructor's initializer list cannot initialize other members in addition to selecting the target constructor:
+
+    ```cpp
+    // Socket() : Socket{"127.0.0.1", 8080}, port_{9000} {} // invalid
+    ```
+
+    The target constructor initializes the complete object; the delegating constructor then runs its body.
+
+    ### Tradeoff
+
+    Delegation reduces duplication, but a complicated chain can obscure which constructor establishes which invariant. Keep a clear primary constructor.
   source: 04_constructors_destructors_initialization.md
 - id: '04.9'
   topic: Constructors, Destructors, and Initialization
   question: Why mark a single-argument constructor `explicit` by default?
   answer: |-
+    ## Short answer
+
     To prevent surprising implicit conversions. Leave it implicit only when conversion is intentional and natural for the type.
 
-    **More detail:** An implicit converting constructor can make overload resolution accept unintended argument conversions; `explicit` keeps that choice visible.
+    ## Detailed answer
+
+    A constructor callable with one argument can define an implicit conversion:
+
+    ```cpp
+    class Milliseconds {
+    public:
+        Milliseconds(int value) : value_{value} {}
+
+    private:
+        int value_;
+    };
+
+    void wait(Milliseconds duration);
+    wait(1000); // implicit conversion
+    ```
+
+    This may be convenient for a natural value type, but it may also hide mistakes.
+
+    ```cpp
+    class Milliseconds {
+    public:
+        explicit Milliseconds(int value) : value_{value} {}
+    };
+
+    wait(Milliseconds{1000}); // intention is explicit
+    ```
+
+    Copy-initialization rejects explicit constructors:
+
+    ```cpp
+    // Milliseconds duration = 1000; // error
+    Milliseconds duration{1000};    // valid
+    ```
+
+    Constructors with multiple parameters can also be converting constructors if remaining parameters have defaults:
+
+    ```cpp
+    explicit Range(int low, int high = 100);
+    ```
+
+    Since C++11, conversion operators can also be explicit:
+
+    ```cpp
+    explicit operator bool() const;
+    ```
   source: 04_constructors_destructors_initialization.md
 - id: '04.10'
   topic: Constructors, Destructors, and Initialization
   question: Why do `initializer_list` constructors require care?
   answer: |-
+    ## Short answer
+
     Brace initialization strongly prefers matching `initializer_list` overloads, which can select a different constructor than parentheses and can reject narrowing conversions.
 
-    **More detail:** For example, a brace expression may select an `initializer_list` overload instead of a count-and-value constructor.
+    ## Detailed answer
+
+    Brace initialization gives `std::initializer_list` constructors strong preference:
+
+    ```cpp
+    std::vector<int> a(10, 20); // ten elements, each 20
+    std::vector<int> b{10, 20}; // two elements: 10 and 20
+    ```
+
+    A class may use:
+
+    ```cpp
+    class RegisterSet {
+    public:
+        RegisterSet(std::initializer_list<std::uint32_t> values);
+    };
+    ```
+
+    This supports:
+
+    ```cpp
+    RegisterSet registers{1, 2, 3};
+    ```
+
+    ### Tradeoffs
+
+    - Excellent for homogeneous element lists.
+    - Elements in an initializer list are const, which can inhibit moving move-only values.
+    - Overload resolution can surprise callers because initializer-list constructors are preferred.
+    - Empty braces may select a default constructor in some cases rather than an initializer-list constructor.
   source: 04_constructors_destructors_initialization.md
 - id: '04.11'
   topic: Constructors, Destructors, and Initialization
   question: When does an object’s destructor run?
   answer: |-
+    ## Short answer
+
     At lifetime end: scope exit, owner deletion, container destruction, exception unwinding, or destruction of the containing object.
 
-    **More detail:** RAII makes these lifetime endpoints predictable, including cleanup during stack unwinding after an exception.
+    ## Detailed answer
+
+    ### Automatic objects
+
+    ```cpp
+    {
+        Device device;
+    } // destructor runs
+    ```
+
+    ### Dynamic objects
+
+    ```cpp
+    auto device = std::make_unique<Device>();
+    device.reset(); // destroys now
+    ```
+
+    Or destruction occurs when the last owning smart pointer dies.
+
+    ### Containers
+
+    ```cpp
+    std::vector<Device> devices;
+    ```
+
+    Destroying the vector destroys its elements.
+
+    ### Static objects
+
+    Function-local static and namespace-scope objects are destroyed during program termination, subject to ordering rules. Dependencies among globals across translation units can create the static initialization/destruction order problem.
+
+    ### Temporary objects
+
+    Most temporaries are destroyed at the end of the full expression unless a lifetime-extension rule applies.
   source: 04_constructors_destructors_initialization.md
 - id: '04.12'
   topic: Constructors, Destructors, and Initialization
   question: When does a base class need a virtual destructor?
   answer: |-
+    ## Short answer
+
     When objects may be deleted through a base pointer. Without a virtual destructor, such deletion has undefined behavior. A protected non-virtual destructor can intentionally forbid base-pointer deletion.
 
-    **More detail:** A virtual destructor ensures destruction dispatches through the dynamic type when deleting a derived object via a base pointer.
+    ## Detailed answer
+
+    If objects may be deleted through a base pointer, the base destructor should normally be virtual:
+
+    ```cpp
+    class Device {
+    public:
+        virtual ~Device() = default;
+        virtual void start() = 0;
+    };
+
+    class Camera : public Device {
+    public:
+        ~Camera() override {
+            // release camera resources
+        }
+    };
+
+    std::unique_ptr<Device> device = std::make_unique<Camera>();
+    ```
+
+    When the smart pointer deletes through `Device*`, virtual dispatch ensures the `Camera` destructor runs before `Device` destruction.
+
+    Deleting a derived object through a base pointer without an appropriate virtual destructor is undefined behavior:
+
+    ```cpp
+    class Device {
+    public:
+        ~Device() = default; // non-virtual
+    };
+    ```
+
+    ### When a non-virtual protected destructor is appropriate
+
+    A base not intended for polymorphic deletion can make that contract explicit:
+
+    ```cpp
+    class InterfaceMixin {
+    protected:
+        ~InterfaceMixin() = default;
+    };
+    ```
+
+    A common guideline is: a polymorphic base destructor should be public virtual or protected non-virtual, depending on the intended ownership model.
+
+    ### Pure virtual destructor
+
+    A destructor may be pure virtual, but it still needs a definition because base destruction must execute:
+
+    ```cpp
+    class Interface {
+    public:
+        virtual ~Interface() = 0;
+    };
+
+    Interface::~Interface() = default;
+    ```
   source: 04_constructors_destructors_initialization.md
 - id: '04.13'
   topic: Constructors, Destructors, and Initialization
   question: What happens if construction throws?
   answer: |-
+    ## Short answer
+
     Already-constructed bases and members are destroyed automatically in reverse order. The incomplete object’s own destructor is not called.
 
-    **More detail:** Only fully constructed subobjects are cleaned up; the constructor's own destructor cannot run because the complete object never finished construction.
+    ## Detailed answer
+
+    ```cpp
+    class System {
+    public:
+        System()
+            : log_{},
+              connection_{},
+              worker_{} {}
+    };
+    ```
+
+    If `connection_` constructs successfully but `worker_` throws:
+
+    - `connection_` is destroyed.
+    - `log_` is destroyed.
+    - The `System` destructor is not called because the complete `System` was never constructed.
+    - Storage cleanup proceeds according to how construction was initiated.
+
+    This is why RAII members are essential. Raw resources acquired in a constructor body can leak if a later operation throws unless immediately wrapped.
+
+    ### Function-try-blocks
+
+    A constructor function-try-block can observe exceptions from base/member initialization:
+
+    ```cpp
+    System::System()
+    try
+        : connection_{make_connection()} {
+    } catch (...) {
+        // log and rethrow or translate
+        throw;
+    }
+    ```
+
+    The already-constructed subobjects have already been handled by the language. Access to not-fully-constructed state is restricted and must be treated cautiously.
+
+    ### Destructor exceptions
+
+    Destructors should generally be `noexcept` and must not let exceptions escape during stack unwinding, because a second active exception leads to `std::terminate`.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart TD
+        A[Begin construction] --> B[Construct bases and members]
+        B --> C{Constructor throws?}
+        C -->|No| D[Object becomes fully constructed]
+        C -->|Yes| E[Destroy completed subobjects in reverse order]
+        E --> F[Most-derived destructor does not run]
+    ```
   source: 04_constructors_destructors_initialization.md
 - id: '04.14'
   topic: Constructors, Destructors, and Initialization
   question: How does virtual dispatch behave in constructors and destructors?
   answer: |-
+    ## Short answer
+
     Dispatch is limited to the class currently under construction or destruction; it does not call overrides in a more-derived portion whose lifetime has not begun or has already ended.
 
-    **More detail:** Calling a virtual function from a constructor or destructor does not dispatch into a derived portion that is not currently alive.
+    ## Detailed answer
+
+    Calling a virtual function from a constructor does not dispatch to a more-derived override:
+
+    ```cpp
+    class Base {
+    public:
+        Base() {
+            initialize(); // calls Base::initialize
+        }
+
+        virtual void initialize();
+    };
+    ```
+
+    While the base constructor runs, the derived portion is not yet constructed. During destruction, the derived portion may already be destroyed. Dispatch is therefore limited to the currently active construction/destruction level.
+
+    Calling a pure virtual function in such a context can lead to undefined behavior or a runtime failure, depending on the call and implementation.
+
+    ### Better pattern
+
+    Perform derived-specific initialization after complete construction, possibly through:
+
+    - A factory function.
+    - A non-virtual initialization step called by the factory.
+    - Constructor parameters that supply required strategies or dependencies.
   source: 04_constructors_destructors_initialization.md
 assets: {}
 study_progress:

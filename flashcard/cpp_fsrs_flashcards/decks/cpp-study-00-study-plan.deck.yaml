@@ -12,103 +12,382 @@ cards:
   topic: C++ Study Plan
   question: What five areas should a C++ study plan cover?
   answer: |-
+    ## Short answer
+
     Modern C++; data structures and algorithms; OOP and software design; operating systems, concurrency, and embedded systems; and embedded/autonomous-system design and debugging.
 
-    **More detail:** These areas reinforce one another: strong language fundamentals help you reason about algorithms, and systems context helps you explain real tradeoffs.
+    ## Detailed answer
+
+    A balanced plan should connect language knowledge to problem solving and system constraints. Modern C++ supplies safe ownership and expressive types; algorithms supply problem-solving patterns; OOP and design organize change; OS/concurrency explains execution and synchronization; embedded/system design adds timing, memory, hardware, failure recovery, and debugging constraints.
+
+    Do not study these as isolated silos. For example, a producer-consumer exercise combines containers, ownership, concurrency, shutdown design, and complexity analysis.
   source: C++ study notes
 - id: '00.2'
   topic: C++ Study Plan
   question: What is the recommended preparation-time split?
   answer: |-
+    ## Short answer
+
     - Data structures and algorithms: 35%
     - Modern C++: 25%
     - Embedded, OS, and concurrency: 20%
     - OOP and design: 10%
     - System design, behavioral preparation, and applications: 10%
 
-    **More detail:** Treat these percentages as a starting point, then shift time toward weak areas based on timed practice and review results.
+    ## Detailed answer
+
+    The split is a starting budget, not a law. Use the largest block for coding practice because interviews require fluent implementation under time pressure. Keep modern C++ and systems work in the weekly loop so correct algorithms are also expressed with safe ownership, clear interfaces, and realistic concurrency assumptions.
+
+    Rebalance using evidence: move time toward categories where timed practice, mock interviews, or review statistics show repeated misses.
   source: C++ study notes
 - id: '00.3'
   topic: C++ Study Plan
   question: What should a strong coding-problem workflow look like?
   answer: |-
+    ## Short answer
+
     Clarify requirements, give a brute-force solution, derive an optimized solution, state invariants, implement cleanly, test edge cases, and explain time and space complexity.
 
-    **More detail:** State input constraints and edge cases before coding; after implementation, test both representative cases and boundary conditions.
+    ## Detailed answer
+
+    You can solve most standard medium problems in approximately 25–35 minutes.
+
+    You consistently:
+
+    - Explain before coding
+    - Use good variable names
+    - Test edge cases
+    - State complexity
+    - Avoid compiler-level mistakes
+
+    ---
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart LR
+        A[Clarify requirements] --> B[State brute force]
+        B --> C[Derive optimized approach]
+        C --> D[State invariant]
+        D --> E[Implement]
+        E --> F[Test edge cases]
+        F --> G[Explain complexity]
+    ```
   source: C++ study notes
 - id: '00.4'
   topic: C++ Study Plan
   question: What are the Rule of Three, Rule of Five, and Rule of Zero?
   answer: |-
+    ## Short answer
+
     - Rule of Three: if a type needs a custom destructor, copy constructor, or copy assignment, it often needs all three.
     - Rule of Five: add move constructor and move assignment.
     - Rule of Zero: prefer members that manage their own resources so the class declares none of these operations.
 
-    **More detail:** These rules matter most when a class directly manages a resource; standard RAII members often make the Rule of Zero possible.
+    ## Detailed answer
+
+    These rules describe which special member functions a resource-owning type may need.
+
+    - **Rule of Three:** if a type requires a custom destructor, copy constructor, or copy-assignment operator, it probably needs all three because those operations must agree on ownership.
+    - **Rule of Five:** in modern C++, also consider the move constructor and move-assignment operator. Moves can transfer a resource instead of duplicating it.
+    - **Rule of Zero:** the preferred design is to store resources in RAII members such as containers, strings, and smart pointers so the compiler-generated special members are already correct.
+
+    ```cpp
+    class Report {
+    public:
+        Report(std::string name, std::vector<int> values)
+            : name_{std::move(name)}, values_{std::move(values)} {}
+
+    private:
+        std::string name_;
+        std::vector<int> values_;
+    }; // Rule of Zero: no custom destructor/copy/move code
+    ```
+
+    Do not implement all five mechanically. First decide whether the type should be copyable, movable, both, or neither. A unique operating-system handle, for example, is usually movable but not copyable.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart TD
+        A[Does the type directly manage a resource?] -->|No| Z[Rule of Zero]
+        A -->|Yes| B[Custom destructor/copy needed]
+        B --> C[Rule of Three]
+        C --> D[Add move operations]
+        D --> E[Rule of Five]
+    ```
   source: C++ study notes
 - id: '00.5'
   topic: C++ Study Plan
   question: What is RAII?
   answer: |-
+    ## Short answer
+
     Resource Acquisition Is Initialization ties resource ownership to object lifetime: acquire during construction, release during destruction. It provides deterministic cleanup during normal exit and exception unwinding.
 
-    **More detail:** Examples include `std::lock_guard` releasing a mutex and `std::unique_ptr` deleting its object when the owner leaves scope.
+    ## Detailed answer
+
+    RAII makes cleanup a consequence of normal C++ lifetime rules. A constructor establishes a valid resource-owning object; its destructor releases the resource. When control leaves a scope—by normal return, early return, or exception—fully constructed local objects are destroyed in reverse order.
+
+    A lock is the classic example:
+
+    ```cpp
+    void update(State& state, std::mutex& mutex) {
+        std::lock_guard<std::mutex> lock{mutex};
+        modify(state);
+    } // lock is released automatically
+    ```
+
+    The same idea applies to memory (`std::unique_ptr`, containers), files (`std::fstream`), threads (`std::jthread`), and custom handles. RAII does not require dynamic allocation; an embedded program can use fixed-capacity objects and still use deterministic scope-based cleanup.
+
+    A well-designed RAII type maintains a clear invariant: either construction succeeds and the object owns a valid resource, or construction fails without exposing a partially usable object. Destructors should release resources reliably and ordinarily must not throw.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart LR
+        A[Enter scope] --> B[Construct RAII owner]
+        B --> C[Use the resource]
+        C --> D{How scope exits}
+        D -->|Normal return| E[Destructor releases resource]
+        D -->|Early return| E
+        D -->|Exception| E
+    ```
   source: C++ study notes
 - id: '00.6'
   topic: C++ Study Plan
   question: When should you use `unique_ptr`, `shared_ptr`, and `weak_ptr`?
   answer: |-
+    ## Short answer
+
     Use `unique_ptr` for exclusive ownership, `shared_ptr` only for genuine shared lifetime, and `weak_ptr` for non-owning observation of shared state or to break ownership cycles.
 
-    **More detail:** Prefer `unique_ptr` until sharing is required; a `weak_ptr` must be locked to obtain a temporary `shared_ptr` before use.
+    ## Detailed answer
+
+    Master:
+
+    ```cpp
+    std::unique_ptr
+    std::shared_ptr
+    std::weak_ptr
+    std::make_unique
+    std::make_shared
+    ```
+
+    ### `std::unique_ptr`
+
+    Represents exclusive ownership.
+
+    ```cpp
+    auto sensor = std::make_unique<Sensor>();
+    ```
+
+    Ownership can move:
+
+    ```cpp
+    auto sensor2 = std::move(sensor);
+    ```
+
+    Afterward:
+
+    ```cpp
+    sensor == nullptr
+    ```
+
+    typically holds.
+
+    Know why copying a `unique_ptr` is prohibited.
+
+    ---
+
+    ### `std::shared_ptr`
+
+    Represents shared ownership.
+
+    ```cpp
+    auto sensor = std::make_shared<Sensor>();
+    ```
+
+    Understand:
+
+    - Reference counting
+    - Ownership semantics
+    - Destruction behavior
+    - Runtime overhead
+    - Thread-safety limitations
+
+    Do not use `shared_ptr` simply because ownership is unclear.
+
+    Unclear ownership is often a design problem.
+
+    ---
+
+    ### `std::weak_ptr`
+
+    Understand why it exists.
+
+    Typical use:
+
+    ```text
+    Object A owns Object B
+    Object B needs to refer back to Object A
+    ```
+
+    If both use `shared_ptr`, you may create an ownership cycle.
+
+    A `weak_ptr` can break the cycle.
+
+    ---
   source: C++ study notes
 - id: '00.7'
   topic: C++ Study Plan
   question: What are the core SOLID principles?
   answer: |-
+    ## Short answer
+
     Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion. They guide maintainable interfaces, but should be applied according to the design rather than mechanically.
 
-    **More detail:** Use the principles to evaluate coupling and changeability, not as a requirement to create extra classes or layers.
+    ## Detailed answer
+
+    SOLID is a set of design heuristics, not a requirement to create many interfaces or classes.
+
+    | Principle | Practical question |
+    |---|---|
+    | Single Responsibility | Does this unit have one cohesive reason to change? |
+    | Open/Closed | Can expected variation be added through a stable extension point? |
+    | Liskov Substitution | Can a derived implementation replace the base without surprising clients? |
+    | Interface Segregation | Does each client depend only on operations it actually needs? |
+    | Dependency Inversion | Does policy depend on abstractions rather than construction details? |
+
+    ```cpp
+    struct SensorReader {
+        virtual Reading read() = 0;
+        virtual ~SensorReader() = default;
+    };
+
+    class AlarmPolicy {
+    public:
+        explicit AlarmPolicy(SensorReader& sensor) : sensor_{sensor} {}
+        bool should_alarm() { return sensor_.read().temperature > limit_; }
+    private:
+        SensorReader& sensor_;
+        double limit_{80.0};
+    };
+    ```
+
+    `AlarmPolicy` depends on the small `SensorReader` abstraction, so hardware and test implementations can be substituted. Apply the principles when they reduce coupling and clarify contracts; mechanical application can instead add indirection and complexity.
   source: C++ study notes
 - id: '00.8'
   topic: C++ Study Plan
   question: Why prefer composition over inheritance?
   answer: |-
+    ## Short answer
+
     Composition usually creates looser coupling, explicit ownership, and replaceable behavior. Use inheritance when there is a genuine substitutable “is-a” relationship or a required polymorphic interface.
 
-    **More detail:** Composition delegates work to owned or borrowed components; inheritance should preserve the base type's behavioral contract.
+    ## Detailed answer
+
+    Composition builds a type from independently replaceable collaborators, which keeps ownership and dependencies visible. Inheritance permanently couples a derived type to a base contract and is appropriate when clients can safely substitute the derived object wherever the base is expected.
+
+    ```cpp
+    class ReportService {
+    public:
+        explicit ReportService(Renderer& renderer) : renderer_{renderer} {}
+        void run(const Report& report) { renderer_.render(report); }
+    private:
+        Renderer& renderer_; // composed dependency; not owned
+    };
+    ```
+
+    Prefer inheritance for an intentional polymorphic interface, not merely to reuse implementation.
   source: C++ study notes
 - id: '00.9'
   topic: C++ Study Plan
   question: What algorithm patterns should be immediately recognizable?
   answer: |-
+    ## Short answer
+
     Hashing, two pointers, sliding window, prefix sums, binary search, DFS/BFS, heaps, interval processing, greedy choice, backtracking, and dynamic programming.
 
-    **More detail:** Pattern recognition is a starting hypothesis; verify the pattern against the input constraints and prove its correctness.
+    ## Detailed answer
+
+    Recognize the signal behind each pattern: pair or partition constraints suggest two pointers; a contiguous subrange suggests sliding window or prefix sums; monotonic decisions suggest binary search; reachability suggests DFS/BFS; repeated best-next selection suggests a heap; overlapping subproblems suggest dynamic programming.
+
+    In an interview, state the invariant before coding. For a sliding window, for example, explain what the current window represents, when it becomes invalid, and why moving the left boundary restores validity.
   source: C++ study notes
 - id: '00.10'
   topic: C++ Study Plan
   question: What must be stated when discussing a concurrent design?
   answer: |-
+    ## Short answer
+
     Shared state, synchronization mechanism, ownership and lifetime, ordering requirements, data-race prevention, deadlock risks, blocking behavior, and shutdown/cancellation behavior.
 
-    **More detail:** A complete design also identifies who owns shared objects and how shutdown waits for workers to stop safely.
+    ## Detailed answer
+
+    Start by naming every piece of shared mutable state and which thread or task owns it. Then define how access is synchronized: mutex, atomic operation, message passing, immutable snapshot, or single-thread confinement. “It uses a mutex” is incomplete unless the protected invariant and locking scope are clear.
+
+    Discuss ordering and progress properties as well:
+
+    - Which events must happen-before other events?
+    - Can operations block, starve, deadlock, or suffer priority inversion?
+    - What wakes a waiting thread, and is the condition checked in a loop?
+    - How are cancellation, shutdown, errors, and partially completed work handled?
+    - Which objects must remain alive until background work finishes?
+
+    ```cpp
+    std::mutex mutex;
+    std::condition_variable ready;
+    bool stopping = false;
+    std::queue<Job> jobs;
+
+    ready.wait(lock, [&] { return stopping || !jobs.empty(); });
+    ```
+
+    Finally, state how the design will be tested: stress tests, race detectors, deterministic scheduling where possible, and explicit shutdown tests.
   source: C++ study notes
 - id: '00.11'
   topic: C++ Study Plan
   question: What changes when evaluating code for embedded or real-time use?
   answer: |-
+    ## Short answer
+
     Consider deterministic timing, bounded memory use, allocation policy, interrupt context, hardware access, concurrency, error recovery, watchdogs, and worst-case rather than average-case behavior.
 
-    **More detail:** For hard real-time paths, justify worst-case execution time and memory behavior rather than relying only on average benchmarks.
+    ## Detailed answer
+
+    Embedded and real-time evaluation focuses on bounds and failure modes rather than only average throughput. Ask for worst-case execution time, maximum memory use, stack depth, allocation behavior, interrupt latency, scheduling policy, and the consequences of missing a deadline.
+
+    Hardware access adds constraints that ordinary desktop code may not have:
+
+    - memory-mapped I/O and the correct use of `volatile` or platform primitives;
+    - interrupt-safe communication and minimal ISR work;
+    - DMA/cache coherency and alignment requirements;
+    - watchdog servicing and recovery after partial failure;
+    - bounded queues and defined overload behavior;
+    - no hidden unbounded allocation or blocking on critical paths.
+
+    ```cpp
+    // Sketch only: the platform API defines the required ordering semantics.
+    volatile std::uint32_t* const status = status_register_address;
+    const auto snapshot = *status;
+    ```
+
+    `volatile` describes observable accesses; it does not provide thread synchronization. Use the platform's atomic, barrier, or critical-section facilities where concurrency or device ordering requires them.
   source: C++ study notes
 - id: '00.12'
   topic: C++ Study Plan
   question: When are you ready to apply what you have studied?
   answer: |-
+    ## Short answer
+
     When you can solve unfamiliar problems while communicating clearly, write and debug modern C++, reason about ownership and concurrency, discuss embedded tradeoffs, and explain prior projects and failures with evidence.
 
-    **More detail:** Readiness is demonstrated by repeatable performance on unfamiliar tasks, not by finishing a fixed reading list.
+    ## Detailed answer
+
+    Readiness is demonstrated under realistic constraints, not by finishing a reading list. You should be able to clarify an unfamiliar problem, choose a defensible design, implement it without relying on accidental behavior, test edge cases, and explain complexity and tradeoffs aloud.
+
+    Use timed problems and mock interviews as the final feedback loop. A weak result identifies the next practice target; it is not a reason to restart the entire curriculum.
   source: C++ study notes
 assets: {}
 study_progress:

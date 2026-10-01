@@ -12,97 +12,842 @@ cards:
   topic: Const Correctness
   question: What is const correctness?
   answer: |-
+    ## Short answer
+
     It is the consistent design of types and APIs so read-only and mutable access are accurately expressed and enforced across parameters, members, call chains, and returned access.
 
-    **More detail:** A const-correct API lets callers and the compiler verify mutation permissions consistently from parameters through return values.
+    ## Detailed answer
+
+    A single const declaration is syntax. Const correctness is a design property across declarations, definitions, call chains, and returned access.
+
+    ```cpp
+    class ImageProcessor {
+    public:
+        ImageProcessor(const Calibration& calibration)
+            : calibration_{calibration} {}
+
+        Result process(const Frame& frame) const;
+
+    private:
+        const Calibration& calibration_;
+    };
+    ```
+
+    This interface communicates:
+
+    - The processor borrows calibration rather than owning it.
+    - Calibration is required because it is a reference.
+    - Calibration is read-only through the processor.
+    - Processing accepts a required read-only frame.
+    - `process` does not logically mutate the processor.
+    - The result is returned as a new value owned by the caller.
+
+    If one helper is missing a const qualifier, the whole call chain may become unusable from a const object:
+
+    ```cpp
+    class ImageProcessor {
+    public:
+        Result process(const Frame& frame) const {
+            return validate(frame); // validate must also be const
+        }
+
+    private:
+        Result validate(const Frame& frame) const;
+    };
+    ```
+
+    ### Tradeoff
+
+    A very restrictive interface can be awkward if mutation is genuinely required. The goal is not to add const everywhere mechanically; it is to grant exactly the mutation each operation needs.
   source: 03_const_correctness.md
 - id: '03.2'
   topic: Const Correctness
   question: What four questions should a parameter type answer?
   answer: |-
+    ## Short answer
+
     Is the argument required? May it be modified? Is ownership transferred or shared? Is copying intended?
 
-    **More detail:** Together these questions reveal the ownership and mutation contract, preventing accidental copies, hidden output parameters, and unclear lifetimes.
+    ## Detailed answer
+
+    Parameter types should answer four questions:
+
+    1. Is an argument required?
+    2. May the function modify it?
+    3. Does the function own it?
+    4. Is copying intended?
+
+    ### Common contracts
+
+    ```cpp
+    void set_retry_count(int count);             // small value
+    void inspect(const Packet& packet);          // required, read-only borrow
+    void repair(Packet& packet);                 // required, mutable borrow
+    void inspect_if_present(const Packet* packet); // optional, read-only borrow
+    void take(std::unique_ptr<Packet> packet);    // ownership transfer
+    ```
+
+    `const Packet&` says that an object is required in ordinary use because references do not represent an empty state. It makes no copy and denies mutation through that reference.
+
+    ### Output parameters
+
+    A mutable reference can express an output:
+
+    ```cpp
+    bool decode(const Bytes& input, Packet& output);
+    ```
+
+    However, a returned object often composes better:
+
+    ```cpp
+    std::optional<Packet> decode(const Bytes& input);
+    ```
+
+    Use an output reference when it fits performance, ABI, embedded allocation, or multi-output constraints. Use a return value when it produces a clearer ownership and error model.
+
+    ### Small types
+
+    This is normally preferable:
+
+    ```cpp
+    void set_channel(int channel);
+    ```
+
+    to:
+
+    ```cpp
+    void set_channel(const int& channel);
+    ```
+
+    The reference adds indirection and lifetime coupling without avoiding meaningful work.
   source: 03_const_correctness.md
 - id: '03.3'
   topic: Const Correctness
   question: Why should logically read-only member functions be `const`?
   answer: |-
+    ## Short answer
+
     It documents the contract, allows calls on const objects, supports const propagation, and expands safe reuse of the type.
 
-    **More detail:** A const query can be used with const objects and can be called by other const operations, improving composability.
+    ## Detailed answer
+
+    A member function that does not logically modify the object should normally be const:
+
+    ```cpp
+    class Sensor {
+    public:
+        int value() const {
+            return value_;
+        }
+
+        bool healthy() const {
+            return error_count_ == 0;
+        }
+
+        void reset() {
+            value_ = 0;
+            error_count_ = 0;
+        }
+
+    private:
+        int value_{};
+        unsigned error_count_{};
+    };
+    ```
+
+    Usage:
+
+    ```cpp
+    const Sensor sensor;
+    int value = sensor.value(); // valid
+    // sensor.reset();          // error
+    ```
+
+    The trailing const applies to the implicit object parameter. Conceptually:
+
+    ```cpp
+    int value(const Sensor& self);
+    void reset(Sensor& self);
+    ```
+
+    ### Why getters should be const
+
+    A getter without trailing const cannot be called through:
+
+    - A const object.
+    - A const reference.
+    - A pointer-to-const.
+    - A const container element.
+
+    Missing one qualifier can make a large read-only API unusable.
+
+    ### What a const member may do
+
+    It may:
+
+    - Read ordinary members.
+    - Call other const member functions.
+    - Modify local variables.
+    - Modify `mutable` members.
+    - Read or even mutate external objects through pointer/reference members if their types permit it.
+    - Perform I/O.
+
+    So trailing const is a type-system restriction, not a guarantee of purity.
   source: 03_const_correctness.md
 - id: '03.4'
   topic: Const Correctness
   question: How does object constness affect overload resolution?
   answer: |-
+    ## Short answer
+
     A mutable object can call const or non-const members, with the non-const match generally preferred. A const object can call only compatible const-qualified members.
 
-    **More detail:** A non-const object can bind to either member overload, while a const object cannot call a member requiring mutable access.
+    ## Detailed answer
+
+    For an ordinary member function:
+
+    ```cpp
+    class Counter {
+    public:
+        int value() const;
+        void increment();
+    };
+    ```
+
+    a useful conceptual model is:
+
+    ```cpp
+    int value(const Counter& self);
+    void increment(Counter& self);
+    ```
+
+    This model explains why:
+
+    ```cpp
+    const Counter counter;
+    // counter.increment(); // cannot bind const Counter to mutable Counter&
+    counter.value();        // can bind to const Counter&
+    ```
+
+    It also explains overload resolution:
+
+    ```cpp
+    void inspect();
+    void inspect() const;
+    ```
+
+    A mutable object can call either in principle, but the non-const version is a better match because it does not add const qualification. A const object can call only the const version.
+
+    ### Ref-qualified member functions
+
+    Advanced APIs may also distinguish lvalue and rvalue objects:
+
+    ```cpp
+    class Payload {
+    public:
+        const std::string& data() const & {
+            return data_;
+        }
+
+        std::string data() && {
+            return std::move(data_);
+        }
+
+    private:
+        std::string data_;
+    };
+    ```
+
+    The first safely borrows from an lvalue. The second moves data out of a temporary/rvalue object.
   source: 03_const_correctness.md
 - id: '03.5'
   topic: Const Correctness
   question: Can member overloads differ by return type alone?
   answer: |-
+    ## Short answer
+
     No. Const/non-const accessors differ through the member function’s trailing `const`, which changes the implicit object parameter.
 
-    **More detail:** Member overloads may differ by the cv/ref qualification of the implicit object parameter, but not by return type alone.
+    ## Detailed answer
+
+    The standard pattern is:
+
+    ```cpp
+    class Buffer {
+    public:
+        int& operator[](std::size_t index) {
+            return data_[index];
+        }
+
+        const int& operator[](std::size_t index) const {
+            return data_[index];
+        }
+
+    private:
+        int data_[10]{};
+    };
+    ```
+
+    ### Mutable object
+
+    ```cpp
+    Buffer writable;
+    writable[3] = 42;
+    int x = writable[3];
+    ```
+
+    Both expressions select:
+
+    ```cpp
+    int& operator[](std::size_t index);
+    ```
+
+    The compiler chooses the overload before considering what later happens to the returned reference. Reading the result does not cause selection of the const overload.
+
+    ### Const object
+
+    ```cpp
+    const Buffer read_only;
+    int x = read_only[3];
+    // read_only[3] = 42; // error
+    ```
+
+    This selects:
+
+    ```cpp
+    const int& operator[](std::size_t index) const;
+    ```
+
+    ### Why the return types match the object
+
+    Returning `int&` from the mutable overload allows callers to mutate the actual element. Returning `const int&` from the const overload prevents a const object from leaking mutable access to its internals.
+
+    This would violate const correctness:
+
+    ```cpp
+    int& operator[](std::size_t index) const; // normally ill-formed
+    ```
+
+    Inside the const function, `data_[index]` behaves as a const lvalue, so it cannot bind to `int&`.
+
+    ### Return types do not create overloads
+
+    These conflict:
+
+    ```cpp
+    int& operator[](std::size_t index);
+    const int& operator[](std::size_t index);
+    ```
+
+    Overload resolution cannot use the desired return type because many expressions ignore a return value or provide no unique expected type.
+
+    ### Bounds tradeoff
+
+    `operator[]` conventionally provides unchecked access, as with standard containers. A checked operation can be separate:
+
+    ```cpp
+    int& at(std::size_t index) {
+        if (index >= 10) {
+            throw std::out_of_range{"Buffer index"};
+        }
+        return data_[index];
+    }
+    ```
+
+    In exception-free embedded code, the checked API might return a pointer, `std::optional<std::reference_wrapper<int>>`, an error code, or use a precondition/assertion.
   source: 03_const_correctness.md
 - id: '03.6'
   topic: Const Correctness
   question: What should const and non-const direct accessors return?
   answer: |-
+    ## Short answer
+
     When exposing direct access is appropriate, return `T&` from the non-const overload and `const T&` from the const overload.
 
-    **More detail:** The returned reference remains borrowed: callers must not outlive the object or retain it across invalidating mutations.
+    ## Detailed answer
+
+    The standard pattern is:
+
+    ```cpp
+    class Buffer {
+    public:
+        int& operator[](std::size_t index) {
+            return data_[index];
+        }
+
+        const int& operator[](std::size_t index) const {
+            return data_[index];
+        }
+
+    private:
+        int data_[10]{};
+    };
+    ```
+
+    ### Mutable object
+
+    ```cpp
+    Buffer writable;
+    writable[3] = 42;
+    int x = writable[3];
+    ```
+
+    Both expressions select:
+
+    ```cpp
+    int& operator[](std::size_t index);
+    ```
+
+    The compiler chooses the overload before considering what later happens to the returned reference. Reading the result does not cause selection of the const overload.
+
+    ### Const object
+
+    ```cpp
+    const Buffer read_only;
+    int x = read_only[3];
+    // read_only[3] = 42; // error
+    ```
+
+    This selects:
+
+    ```cpp
+    const int& operator[](std::size_t index) const;
+    ```
+
+    ### Why the return types match the object
+
+    Returning `int&` from the mutable overload allows callers to mutate the actual element. Returning `const int&` from the const overload prevents a const object from leaking mutable access to its internals.
+
+    This would violate const correctness:
+
+    ```cpp
+    int& operator[](std::size_t index) const; // normally ill-formed
+    ```
+
+    Inside the const function, `data_[index]` behaves as a const lvalue, so it cannot bind to `int&`.
+
+    ### Return types do not create overloads
+
+    These conflict:
+
+    ```cpp
+    int& operator[](std::size_t index);
+    const int& operator[](std::size_t index);
+    ```
+
+    Overload resolution cannot use the desired return type because many expressions ignore a return value or provide no unique expected type.
+
+    ### Bounds tradeoff
+
+    `operator[]` conventionally provides unchecked access, as with standard containers. A checked operation can be separate:
+
+    ```cpp
+    int& at(std::size_t index) {
+        if (index >= 10) {
+            throw std::out_of_range{"Buffer index"};
+        }
+        return data_[index];
+    }
+    ```
+
+    In exception-free embedded code, the checked API might return a pointer, `std::optional<std::reference_wrapper<int>>`, an error code, or use a precondition/assertion.
+
+    A paired accessor can preserve constness:
+
+    ```cpp
+    class Device {
+    public:
+        Configuration& configuration() {
+            return configuration_;
+        }
+
+        const Configuration& configuration() const {
+            return configuration_;
+        }
+
+    private:
+        Configuration configuration_;
+    };
+    ```
+
+    ### Benefits
+
+    - No copy of a potentially large object.
+    - Mutable callers can modify it.
+    - Const callers receive only read-only access.
+    - The compiler propagates constness.
+
+    ### Costs
+
+    Returning a reference exposes internal representation and couples callers to the member's lifetime. It can also make invariants difficult to protect:
+
+    ```cpp
+    device.configuration().set_invalid_combination();
+    ```
+
+    A narrower interface may be better:
+
+    ```cpp
+    class Device {
+    public:
+        int sample_rate() const;
+        bool set_sample_rate(int rate);
+    };
+    ```
+
+    ### Return by value
+
+    For a small or identity-independent value, return by value:
+
+    ```cpp
+    int id() const {
+        return id_;
+    }
+    ```
+
+    Returning `const int&` would add lifetime coupling for no meaningful performance benefit.
   source: 03_const_correctness.md
 - id: '03.7'
   topic: Const Correctness
   question: Why is C++ const usually shallow?
   answer: |-
+    ## Short answer
+
     A const object cannot modify its direct ordinary members, but a pointer member may still point to mutable external data. The handle is part of the const object; the pointee may not be.
 
-    **More detail:** Const prevents reassignment of the pointer member itself, but does not automatically make the pointed-to object const.
+    ## Detailed answer
+
+    C++ const is normally shallow.
+
+    ```cpp
+    class Controller {
+    public:
+        explicit Controller(Device* device)
+            : device_{device} {}
+
+        void emergency_stop() const {
+            device_->stop(); // may mutate the Device
+        }
+
+    private:
+        Device* device_;
+    };
+    ```
+
+    The const member function cannot reseat `device_` because the pointer member itself is part of the const `Controller`. But it may mutate the separate `Device` object because the pointer type is `Device*`.
+
+    To provide read-only pointed-to access:
+
+    ```cpp
+    const Device* device_;
+    ```
+
+    Now `device_` points to const `Device`.
+
+    ### Reference members
+
+    A reference member behaves similarly:
+
+    ```cpp
+    class Monitor {
+    public:
+        explicit Monitor(Device& device) : device_{device} {}
+
+        void poll() const {
+            device_.refresh(); // possible if refresh is non-const
+        }
+
+    private:
+        Device& device_;
+    };
+    ```
+
+    The reference cannot be reseated anyway; constness of `Monitor` does not automatically add const to the referenced `Device`.
+
+    ### Deep const
+
+    Some designs need constness to propagate through an owning handle. Standard pointers do not provide deep const automatically. You may expose different view types or design operations so mutation remains controlled.
   source: 03_const_correctness.md
 - id: '03.8'
   topic: Const Correctness
   question: How does const affect containers and smart pointers?
   answer: |-
+    ## Short answer
+
     A const container exposes const element access. A const smart-pointer handle usually cannot be reseated, but it may still give mutable access to its pointee unless the pointee type is const.
 
-    **More detail:** For `const unique_ptr<T>`, the handle is const while `T` can still be mutable; `unique_ptr<const T>` makes the pointee read-only.
+    ## Detailed answer
+
+    ### Const containers
+
+    ```cpp
+    const std::vector<int> values{1, 2, 3};
+
+    int x = values[0];
+    // values[0] = 10; // error
+    ```
+
+    A const vector provides const access to its elements and cannot change its size or capacity.
+
+    Iterator types reflect this:
+
+    ```cpp
+    std::vector<int>::iterator mutable_it;
+    std::vector<int>::const_iterator read_only_it;
+    ```
+
+    `cbegin()` and `cend()` explicitly request const iteration:
+
+    ```cpp
+    for (auto it = values.cbegin(); it != values.cend(); ++it) {
+        // *it is const int&
+    }
+    ```
+
+    `std::as_const` can request a const view of a mutable object:
+
+    ```cpp
+    for (const auto& value : std::as_const(values)) {
+        // read-only access
+    }
+    ```
+
+    ### Const smart pointer versus pointer to const
+
+    ```cpp
+    const std::unique_ptr<Device> owner = std::make_unique<Device>();
+    owner->reset(); // allowed if Device::reset is non-const
+    ```
+
+    The `unique_ptr` handle cannot be moved or reset, but its pointee is still mutable.
+
+    To make the pointee read-only through the handle:
+
+    ```cpp
+    std::unique_ptr<const Device> owner;
+    ```
+
+    The same distinction exists with `shared_ptr`.
+
+    ### `std::span`
+
+    ```cpp
+    std::span<int> writable;
+    std::span<const int> read_only;
+    ```
+
+    A `const std::span<int>` prevents changing the span descriptor but still yields mutable `int` elements. `std::span<const int>` provides read-only element access.
   source: 03_const_correctness.md
 - id: '03.9'
   topic: Const Correctness
   question: What is const propagation?
   answer: |-
+    ## Short answer
+
     A const operation must call other operations through const-compatible interfaces. One missing qualifier in a helper can make the full call chain unusable from const objects.
 
-    **More detail:** Const qualification must be carried through every helper in the call chain or the outer const operation cannot call it.
+    ## Detailed answer
+
+    Const correctness is contagious in a useful way.
+
+    ```cpp
+    class Pipeline {
+    public:
+        Report inspect() const {
+            return build_report();
+        }
+
+    private:
+        Report build_report() const {
+            return collect_metrics();
+        }
+
+        Metrics collect_metrics() const;
+    };
+    ```
+
+    Every operation in the read-only call chain must support const access.
+
+    If a helper lacks const:
+
+    ```cpp
+    Metrics collect_metrics(); // missing const
+    ```
+
+    then a const caller cannot use it, even if the implementation happens not to mutate anything.
+
+    ### Propagating through parameters
+
+    ```cpp
+    void render(const Scene& scene) {
+        for (const Object& object : scene.objects()) {
+            object.draw();
+        }
+    }
+    ```
+
+    For this to work cleanly:
+
+    - `Scene::objects()` needs a const overload.
+    - A const container must yield const elements.
+    - `Object::draw()` should be const if drawing does not change logical object state.
+
+    ### Design benefit
+
+    The compiler reveals accidental mutation paths. Fixing the first missing const often uncovers other interfaces that did not accurately express read-only behavior.
   source: 03_const_correctness.md
 - id: '03.10'
   topic: Const Correctness
   question: What lifetime obligation remains when a const accessor returns a view?
   answer: |-
+    ## Short answer
+
     The source object and its storage must outlive the view. Const limits mutation; it does not create ownership or extend lifetime.
 
-    **More detail:** A view such as `span` or `string_view` carries access information, not ownership or automatic lifetime extension.
+    ## Detailed answer
+
+    Non-owning views make const and lifetime reasoning important:
+
+    ```cpp
+    void parse(std::string_view text);
+    void transmit(std::span<const std::byte> bytes);
+    ```
+
+    These types:
+
+    - Do not own their data.
+    - Provide read-only element access in these declarations.
+    - Usually copy cheaply.
+    - Can dangle if the underlying storage dies or reallocates.
+
+    ### Const does not fix lifetime
+
+    ```cpp
+    std::string_view bad() {
+        std::string local = "message";
+        return local; // dangling view
+    }
+    ```
+
+    The view is read-only, but its data no longer exists.
+
+    ### Tradeoff
+
+    Views avoid copies and express ranges better than pointer-plus-size pairs. They require disciplined lifetime management and may not be appropriate when the callee needs to retain the data.
   source: 03_const_correctness.md
 - id: '03.11'
   topic: Const Correctness
   question: When is `mutable` appropriate?
   answer: |-
+    ## Short answer
+
     For logically invisible state such as a cache, statistics that are not part of value semantics, or a mutex. It should not hide changes to the object’s meaningful observable state.
 
-    **More detail:** If callers can observe the mutation as a change in the object's meaningful value, it is not merely implementation detail.
+    ## Detailed answer
+
+    Logical constness means an operation does not change the abstract value users observe, even if implementation details change.
+
+    ### Cache example
+
+    ```cpp
+    class Frame {
+    public:
+        std::uint32_t checksum() const {
+            if (!checksum_valid_) {
+                checksum_ = calculate_checksum();
+                checksum_valid_ = true;
+            }
+            return checksum_;
+        }
+
+    private:
+        std::uint32_t calculate_checksum() const;
+
+        mutable bool checksum_valid_{false};
+        mutable std::uint32_t checksum_{};
+    };
+    ```
+
+    Caching does not change the frame's logical content.
+
+    ### Mutex example
+
+    ```cpp
+    class Registry {
+    public:
+        std::optional<Device> find(int id) const {
+            std::lock_guard lock{mutex_};
+            // search devices_
+        }
+
+    private:
+        mutable std::mutex mutex_;
+        std::vector<Device> devices_;
+    };
+    ```
+
+    Locking changes mutex state but is necessary to implement a logically read-only query.
+
+    ### Misuse
+
+    This is misleading:
+
+    ```cpp
+    class Account {
+    public:
+        void withdraw(int amount) const {
+            balance_ -= amount;
+        }
+
+    private:
+        mutable int balance_{};
+    };
+    ```
+
+    Balance is meaningful state. The operation should be non-const.
   source: 03_const_correctness.md
 - id: '03.12'
   topic: Const Correctness
   question: Why are const correctness and thread safety separate contracts?
   answer: |-
+    ## Short answer
+
     Const methods can touch mutable state or externally shared objects, and other aliases can mutate the same object. Race freedom requires synchronization or atomic operations.
 
-    **More detail:** Even a const method can race with another thread or alias; const is a type-level access rule, not a synchronization primitive.
+    ## Detailed answer
+
+    Consider:
+
+    ```cpp
+    class Queue {
+    public:
+        std::size_t size() const {
+            return values_.size();
+        }
+
+        void push(int value) {
+            values_.push_back(value);
+        }
+
+    private:
+        std::vector<int> values_;
+    };
+    ```
+
+    `size()` being const does not make this safe:
+
+    ```text
+    Thread A: queue.size()
+    Thread B: queue.push(42)
+    ```
+
+    Concurrent unsynchronized access can still be a data race.
+
+    A thread-safe interface must use mutexes, atomics, immutability, confinement, or another synchronization strategy.
+
+    ### Stronger design idea
+
+    A truly immutable object can often be shared safely for reading after publication, provided its construction and publication are synchronized correctly. Ordinary const access to an otherwise mutable object is not the same guarantee.
   source: 03_const_correctness.md
 assets: {}
 study_progress:

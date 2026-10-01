@@ -5,10 +5,16 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from unittest.mock import patch
 
 from fsrs import Rating
 
-from src.content import MERMAID_PATTERN, _plain_speech_text, _validate_public_url
+from src.content import (
+    MERMAID_PATTERN,
+    _plain_speech_text,
+    _validate_public_url,
+    render_speech_control,
+)
 from src.storage import (
     CONFIG,
     ProgressRepository,
@@ -83,6 +89,16 @@ class DeckTests(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertIn("flowchart LR", match.group("diagram"))
         self.assertEqual("See RAII. diagram omitted", _plain_speech_text(content))
+
+    def test_speech_control_uses_one_read_stop_toggle(self) -> None:
+        with patch("src.content.st.iframe") as iframe:
+            render_speech_control("What is RAII?", "Read question")
+
+        document = iframe.call_args.args[0]
+        self.assertEqual(1, document.count("<button"))
+        self.assertIn("button.onclick=()=>active ? stop() : speak()", document)
+        self.assertIn("'■ Stop'", document)
+        self.assertIn("'🔊 '+readLabel", document)
 
     def test_website_preview_rejects_local_network_targets(self) -> None:
         with self.assertRaisesRegex(ValueError, "Private and local"):

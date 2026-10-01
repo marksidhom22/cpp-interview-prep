@@ -39,12 +39,65 @@ class StreamlitAppTests(unittest.TestCase):
                 reveal.click().run()
                 self.assertEqual([], list(app.exception))
 
+                current_card_id = app.session_state["current_card_id"]
+                edit = next(button for button in app.button if button.label == "Edit this card")
+                edit.click().run()
+                self.assertEqual([], list(app.exception))
+
+                question = next(
+                    field for field in app.text_area if field.label == "Question (Markdown)"
+                )
+                edited_question = f"{question.value}\n\nEdited while studying."
+                question.set_value(edited_question).run()
+                save = next(button for button in app.button if button.label == "Save changes")
+                save.click().run()
+                self.assertEqual([], list(app.exception))
+                self.assertEqual(current_card_id, app.session_state["current_card_id"])
+                self.assertTrue(app.session_state["answer_revealed"])
+
+                document = read_deck_document(copied_deck.path)
+                edited_card = next(
+                    card for card in document["cards"] if card["id"] == current_card_id
+                )
+                self.assertEqual(edited_question, edited_card["question"])
+                self.assertEqual(0, len(document["study_progress"]["reviews"]))
+
                 good = next(button for button in app.button if button.label.startswith("Good"))
                 good.click().run()
                 self.assertEqual([], list(app.exception))
 
                 document = read_deck_document(copied_deck.path)
                 self.assertEqual(1, len(document["study_progress"]["reviews"]))
+
+                deleted_card_id = app.session_state["current_card_id"]
+                card_count = len(document["cards"])
+                delete = next(
+                    button for button in app.button if button.label == "Delete this card"
+                )
+                delete.click().run()
+                self.assertEqual([], list(app.exception))
+                confirmation = next(
+                    field
+                    for field in app.checkbox
+                    if field.label == f"I want to permanently delete {deleted_card_id}"
+                )
+                confirmation.set_value(True).run()
+                delete_permanently = next(
+                    button for button in app.button if button.label == "Delete permanently"
+                )
+                delete_permanently.click().run()
+                self.assertEqual([], list(app.exception))
+
+                document = read_deck_document(copied_deck.path)
+                self.assertEqual(card_count - 1, len(document["cards"]))
+                self.assertNotIn(deleted_card_id, [card["id"] for card in document["cards"]])
+                self.assertNotIn(
+                    deleted_card_id, document["study_progress"]["card_states"]
+                )
+                self.assertNotIn(
+                    deleted_card_id,
+                    [review["card_id"] for review in document["study_progress"]["reviews"]],
+                )
 
                 for workspace_name in ("Cards", "Statistics", "Study"):
                     workspace = next(

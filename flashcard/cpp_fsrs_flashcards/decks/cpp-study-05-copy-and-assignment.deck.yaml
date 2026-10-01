@@ -12,97 +12,853 @@ cards:
   topic: Copy Construction and Copy Assignment
   question: How do copy construction and copy assignment differ?
   answer: |-
+    ## Short answer
+
     Copy construction initializes a new object from another object. Copy assignment replaces the state of an existing object.
 
-    **More detail:** The distinction determines which special member is selected and whether a destination's old resources must first be released.
+    ## Detailed answer
+
+    A copy constructor initializes a new object from an existing object of the same type:
+
+    ```cpp
+    class Foo {
+    public:
+        Foo(const Foo& other);
+    };
+    ```
+
+    Examples:
+
+    ```cpp
+    Foo a;
+    Foo b = a; // copy-initialization
+    Foo c(a);  // direct-initialization
+    Foo d{a};  // direct-list-initialization
+    ```
+
+    All three target objects are new.
+
+    ### Why the parameter is usually `const Foo&`
+
+    - Passing by value would itself require copying, creating recursion.
+    - Passing by reference avoids another copy.
+    - Const allows copying from const objects and ordinary lvalues.
+    - A copy operation should not normally change the source.
+
+    A rare legacy type may have `Foo(Foo&)`, but that cannot copy from const sources and behaves poorly with modern containers.
+
+    ### Explicit copy constructor
+
+    A copy constructor may be marked explicit:
+
+    ```cpp
+    explicit Foo(const Foo&);
+    ```
+
+    Then direct initialization can use it:
+
+    ```cpp
+    Foo c(a);
+    ```
+
+    but copy-initialization cannot:
+
+    ```cpp
+    // Foo b = a;
+    ```
+
+    This is unusual; copy constructors normally model natural copying and are not explicit.
+
+    ### Other contexts that may copy
+
+    Depending on optimization and overloads:
+
+    - Passing an object by value.
+    - Returning an object by value.
+    - Throwing/catching by value.
+    - Inserting an lvalue into a container.
+    - Capturing an object by value in a lambda.
+
+    Copy assignment replaces the state of an existing object:
+
+    ```cpp
+    class Foo {
+    public:
+        Foo& operator=(const Foo& other);
+    };
+    ```
+
+    Usage:
+
+    ```cpp
+    Foo a;
+    Foo b;
+
+    b = a;
+    ```
+
+    Both objects already exist.
+
+    ### Why it returns `Foo&`
+
+    Built-in assignment returns the assigned object as an lvalue, allowing:
+
+    ```cpp
+    a = b = c;
+    ```
+
+    A conventional implementation returns:
+
+    ```cpp
+    return *this;
+    ```
+
+    ### Existing resources matter
+
+    Unlike copy construction, assignment must replace state that may already own resources:
+
+    ```text
+    Copy construction:
+        empty new object -> acquire copied state
+
+    Copy assignment:
+        existing state -> safely replace with copied state
+    ```
+
+    This makes exception safety and cleanup central.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.2'
   topic: Copy Construction and Copy Assignment
   question: Why is a copy constructor normally `Foo(const Foo&)`?
   answer: |-
+    ## Short answer
+
     Passing by reference avoids recursive copying, and const permits copying from const objects and ordinary lvalues.
 
-    **More detail:** A const lvalue reference avoids making a copy just to enter the copy constructor and supports ordinary source objects.
+    ## Detailed answer
+
+    A copy constructor initializes a new object from an existing object of the same type:
+
+    ```cpp
+    class Foo {
+    public:
+        Foo(const Foo& other);
+    };
+    ```
+
+    Examples:
+
+    ```cpp
+    Foo a;
+    Foo b = a; // copy-initialization
+    Foo c(a);  // direct-initialization
+    Foo d{a};  // direct-list-initialization
+    ```
+
+    All three target objects are new.
+
+    ### Why the parameter is usually `const Foo&`
+
+    - Passing by value would itself require copying, creating recursion.
+    - Passing by reference avoids another copy.
+    - Const allows copying from const objects and ordinary lvalues.
+    - A copy operation should not normally change the source.
+
+    A rare legacy type may have `Foo(Foo&)`, but that cannot copy from const sources and behaves poorly with modern containers.
+
+    ### Explicit copy constructor
+
+    A copy constructor may be marked explicit:
+
+    ```cpp
+    explicit Foo(const Foo&);
+    ```
+
+    Then direct initialization can use it:
+
+    ```cpp
+    Foo c(a);
+    ```
+
+    but copy-initialization cannot:
+
+    ```cpp
+    // Foo b = a;
+    ```
+
+    This is unusual; copy constructors normally model natural copying and are not explicit.
+
+    ### Other contexts that may copy
+
+    Depending on optimization and overloads:
+
+    - Passing an object by value.
+    - Returning an object by value.
+    - Throwing/catching by value.
+    - Inserting an lvalue into a container.
+    - Capturing an object by value in a lambda.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.3'
   topic: Copy Construction and Copy Assignment
   question: What does compiler-generated copying do?
   answer: |-
+    ## Short answer
+
     It copies each direct base and non-static data member using that subobject’s copy operation.
 
-    **More detail:** Memberwise copying is recursive: each base and member applies its own copy semantics to its corresponding subobject.
+    ## Detailed answer
+
+    If you do not declare copy operations, the compiler often implicitly declares them. When used and valid, they copy:
+
+    - Direct base-class subobjects.
+    - Non-static data members.
+    - Array elements member by member.
+
+    Example:
+
+    ```cpp
+    class Report {
+    public:
+        std::string title;
+        std::vector<int> values;
+    };
+    ```
+
+    Compiler-generated copying is correct:
+
+    ```cpp
+    Report first;
+    Report second = first;
+    ```
+
+    `std::string` and `std::vector` implement value semantics, so the copied object receives independent logical contents.
+
+    ### Explicitly defaulting
+
+    You can state the intent:
+
+    ```cpp
+    class Report {
+    public:
+        Report(const Report&) = default;
+        Report& operator=(const Report&) = default;
+    };
+    ```
+
+    Do this when it improves interface clarity. Avoid declaring special members without a reason, because declarations can affect move generation and triviality.
+
+    ### When generated copy is deleted
+
+    Copy operations may be implicitly deleted when a base or member cannot be copied:
+
+    ```cpp
+    class Owner {
+    private:
+        std::unique_ptr<int> value_;
+    };
+
+    Owner a;
+    // Owner b = a; // error
+    ```
+
+    A `unique_ptr` is intentionally non-copyable, so the containing type's implicit copy constructor is deleted.
+
+    User-declared move operations also affect implicit copy generation. Exact implicit-generation rules are worth knowing conceptually, but the design rule is simpler: explicitly default or delete special members when ownership semantics are not obvious.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.4'
   topic: Copy Construction and Copy Assignment
   question: When is memberwise copy correct?
   answer: |-
+    ## Short answer
+
     When every base and member already has the desired copy semantics—for example, value-like members such as `string`, `vector`, and other Rule-of-Zero types.
 
-    **More detail:** Members such as `std::vector` own and copy their contents correctly, so the compiler-generated operation usually expresses value semantics.
+    ## Detailed answer
+
+    Memberwise copy is desirable when members express the intended semantics:
+
+    ```cpp
+    class TelemetryPacket {
+    public:
+        std::uint64_t timestamp{};
+        std::string source;
+        std::vector<std::byte> payload;
+    };
+    ```
+
+    The generated copy:
+
+    - Copies the timestamp.
+    - Copies the string contents.
+    - Copies the vector elements.
+
+    This provides independent value semantics.
+
+    ### Pointers that are non-owning
+
+    A raw pointer can be correct under memberwise copying if it is explicitly non-owning:
+
+    ```cpp
+    class SensorView {
+    public:
+        explicit SensorView(const Sensor* sensor)
+            : sensor_{sensor} {}
+
+    private:
+        const Sensor* sensor_; // borrowed, optional
+    };
+    ```
+
+    Copying the view should normally copy the pointer so both views refer to the same external sensor. The lifetime contract must ensure the sensor outlives both views.
+
+    ### References
+
+    A reference member is copied by binding the new object's reference to the same referred-to object:
+
+    ```cpp
+    class SensorRef {
+        Sensor& sensor_;
+    };
+    ```
+
+    Reference members also make ordinary copy assignment problematic because a reference cannot be reseated. The compiler-generated copy assignment is typically deleted.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.5'
   topic: Copy Construction and Copy Assignment
   question: Why is generated copying dangerous for an owning raw pointer?
   answer: |-
+    ## Short answer
+
     It copies only the address, so two objects may believe they own the same allocation, causing aliasing, double deletion, use-after-free, or leaks.
 
-    **More detail:** Both copies may later free the same address; use a value-owning member or define a deliberate deep-copy/unique-ownership policy.
+    ## Detailed answer
+
+    Consider:
+
+    ```cpp
+    class Buffer {
+    public:
+        explicit Buffer(std::size_t size)
+            : size_{size},
+              data_{new int[size]{}} {}
+
+        ~Buffer() {
+            delete[] data_;
+        }
+
+    private:
+        std::size_t size_;
+        int* data_; // owning pointer
+    };
+    ```
+
+    The class compiles and works for a single object. The problem appears when copying:
+
+    ```cpp
+    Buffer first{10};
+    Buffer second = first;
+    ```
+
+    The generated copy constructor performs a shallow copy:
+
+    ```text
+    first.data_  ----+
+                     +---- one allocated array
+    second.data_ ----+
+    ```
+
+    Both destructors later execute `delete[]` on the same address: undefined behavior.
+
+    ### Generated copy assignment is worse
+
+    ```cpp
+    Buffer first{10};
+    Buffer second{20};
+
+    second = first;
+    ```
+
+    Memberwise assignment overwrites `second.data_`:
+
+    - The original 20-element allocation becomes unreachable: memory leak.
+    - Both objects point to the same 10-element allocation: later double deletion.
+
+    ### Terminology
+
+    - **Shallow copy:** copy handles/addresses without duplicating owned resource contents.
+    - **Deep copy:** create a distinct resource and copy the contents.
+    - Shallow copy is not inherently bad; it is wrong when it contradicts ownership semantics.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart LR
+        A[Object A] --> P[Same allocation]
+        B[Shallow-copied Object B] --> P
+        A --> D1[Destructor deletes allocation]
+        B --> D2[Second delete: undefined behavior]
+    ```
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.6'
   topic: Copy Construction and Copy Assignment
   question: What is a deep copy?
   answer: |-
+    ## Short answer
+
     It creates a distinct owned resource and copies the resource’s contents, so the two objects can be modified and destroyed independently.
 
-    **More detail:** A deep copy gives each object independent owned storage, so updates and destruction of one do not affect the other.
+    ## Detailed answer
+
+    A complete C++11-era example:
+
+    ```cpp
+    #include <algorithm>
+    #include <cstddef>
+    #include <utility>
+
+    class Buffer {
+    public:
+        explicit Buffer(std::size_t size)
+            : size_{size},
+              data_{new int[size]{}} {}
+
+        ~Buffer() {
+            delete[] data_;
+        }
+
+        Buffer(const Buffer& other)
+            : size_{other.size_},
+              data_{new int[other.size_]} {
+            std::copy_n(other.data_, size_, data_);
+        }
+
+        Buffer& operator=(const Buffer& other) {
+            if (this == &other) {
+                return *this;
+            }
+
+            int* replacement = new int[other.size_];
+            std::copy_n(other.data_, other.size_, replacement);
+
+            delete[] data_;
+            data_ = replacement;
+            size_ = other.size_;
+
+            return *this;
+        }
+
+        int& operator[](std::size_t index) {
+            return data_[index];
+        }
+
+        const int& operator[](std::size_t index) const {
+            return data_[index];
+        }
+
+    private:
+        std::size_t size_{};
+        int* data_{};
+    };
+    ```
+
+    The copy constructor allocates independent storage:
+
+    ```cpp
+    Buffer first{10};
+    first[0] = 42;
+
+    Buffer second = first;
+    second[0] = 100;
+    ```
+
+    Now:
+
+    ```text
+    first.data_  -> [42, ...]
+    second.data_ -> [100, ...]
+    ```
+
+    ### Why allocate before deleting in assignment?
+
+    ```cpp
+    int* replacement = new int[other.size_];
+    ```
+
+    If allocation fails, the original object remains unchanged. Only after the replacement is successfully prepared does the implementation release old state.
+
+    For `int`, copying cannot throw. For general element types, stronger exception-safety techniques are needed.
+
+    ### Rule of Three
+
+    If a class manually manages a resource and needs any of:
+
+    - Destructor.
+    - Copy constructor.
+    - Copy assignment.
+
+    it often needs to consider all three.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.7'
   topic: Copy Construction and Copy Assignment
   question: What must copy assignment handle?
   answer: |-
+    ## Short answer
+
     Existing owned state, self-assignment, exception safety, and a valid result if resource acquisition fails. It conventionally returns `*this` by reference.
 
-    **More detail:** Acquire replacement resources safely before discarding old state, so failure does not leave the destination invalid or leak memory.
+    ## Detailed answer
+
+    Copy assignment must handle several cases.
+
+    ### Self-assignment
+
+    ```cpp
+    buffer = buffer;
+    ```
+
+    A naive implementation might delete the resource and then attempt to copy from the same deleted resource.
+
+    An identity check handles it:
+
+    ```cpp
+    if (this == &other) {
+        return *this;
+    }
+    ```
+
+    A well-designed algorithm such as copy-and-swap can be naturally self-assignment safe without a separate check.
+
+    ### Exception safety
+
+    Common guarantees are:
+
+    - **No-throw guarantee:** operation never throws.
+    - **Strong guarantee:** if it fails, the target remains unchanged.
+    - **Basic guarantee:** invariants remain valid, but state may change.
+    - **No guarantee:** even invariants may be lost.
+
+    Preparing a full replacement before modifying `*this` is a common strong-guarantee strategy.
+
+    ### Copy-and-swap
+
+    ```cpp
+    class Buffer {
+    public:
+        Buffer& operator=(Buffer other) {
+            swap(other);
+            return *this;
+        }
+
+        void swap(Buffer& other) noexcept {
+            using std::swap;
+            swap(size_, other.size_);
+            swap(data_, other.data_);
+        }
+
+        // constructors and destructor omitted
+    };
+    ```
+
+    The parameter `other` is a copy for lvalue arguments or a move for rvalues when move construction exists. Swapping cannot fail, and `other` destroys the old state when the function returns.
+
+    #### Tradeoffs
+
+    - Clear strong exception safety.
+    - Naturally handles self-assignment.
+    - May do an allocation even when existing capacity could be reused.
+    - A carefully optimized assignment may perform less work.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.8'
   topic: Copy Construction and Copy Assignment
   question: What does the copy-and-swap idiom provide?
   answer: |-
+    ## Short answer
+
     Construct a safe copy first, then swap it with the target. This naturally handles self-assignment and can provide the strong exception guarantee, at a possible extra-allocation or performance cost.
 
-    **More detail:** The temporary copy is built before the swap, so a copy failure leaves the target unchanged; this guarantee may cost an allocation.
+    ## Detailed answer
+
+    Copy assignment must handle several cases.
+
+    ### Self-assignment
+
+    ```cpp
+    buffer = buffer;
+    ```
+
+    A naive implementation might delete the resource and then attempt to copy from the same deleted resource.
+
+    An identity check handles it:
+
+    ```cpp
+    if (this == &other) {
+        return *this;
+    }
+    ```
+
+    A well-designed algorithm such as copy-and-swap can be naturally self-assignment safe without a separate check.
+
+    ### Exception safety
+
+    Common guarantees are:
+
+    - **No-throw guarantee:** operation never throws.
+    - **Strong guarantee:** if it fails, the target remains unchanged.
+    - **Basic guarantee:** invariants remain valid, but state may change.
+    - **No guarantee:** even invariants may be lost.
+
+    Preparing a full replacement before modifying `*this` is a common strong-guarantee strategy.
+
+    ### Copy-and-swap
+
+    ```cpp
+    class Buffer {
+    public:
+        Buffer& operator=(Buffer other) {
+            swap(other);
+            return *this;
+        }
+
+        void swap(Buffer& other) noexcept {
+            using std::swap;
+            swap(size_, other.size_);
+            swap(data_, other.data_);
+        }
+
+        // constructors and destructor omitted
+    };
+    ```
+
+    The parameter `other` is a copy for lvalue arguments or a move for rvalues when move construction exists. Swapping cannot fail, and `other` destroys the old state when the function returns.
+
+    #### Tradeoffs
+
+    - Clear strong exception safety.
+    - Naturally handles self-assignment.
+    - May do an allocation even when existing capacity could be reused.
+    - A carefully optimized assignment may perform less work.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.9'
   topic: Copy Construction and Copy Assignment
   question: When should copying be deleted?
   answer: |-
+    ## Short answer
+
     When a resource has unique identity or cannot be meaningfully duplicated, such as many mutexes, threads, hardware channels, or unique OS handles.
 
-    **More detail:** Deleting copy operations prevents accidental duplication at compile time; moving may still be allowed if transfer is meaningful.
+    ## Detailed answer
+
+    Delete copy operations when an object represents exclusive ownership or identity:
+
+    ```cpp
+    class DeviceSession {
+    public:
+        DeviceSession(const DeviceSession&) = delete;
+        DeviceSession& operator=(const DeviceSession&) = delete;
+
+        DeviceSession(DeviceSession&&) noexcept = default;
+        DeviceSession& operator=(DeviceSession&&) noexcept = default;
+    };
+    ```
+
+    Common non-copyable types include:
+
+    - `std::unique_ptr`.
+    - `std::mutex`.
+    - `std::thread` and `std::jthread` in relevant respects.
+    - Unique OS handles.
+    - Exclusive hardware registrations.
+    - Objects whose address is part of an external invariant.
+
+    ### Why not hide copy operations privately?
+
+    Old code used private undeclared functions. `= delete` is clearer, provides better diagnostics, and makes the intent visible to type traits and templates.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.10'
   topic: Copy Construction and Copy Assignment
   question: How can declaring special members affect moves?
   answer: |-
+    ## Short answer
+
     User-declared copy operations or a destructor can suppress implicit move generation. Explicitly default, delete, or implement operations according to the intended ownership model.
 
-    **More detail:** A user-declared destructor is often a signal to review all copy and move operations rather than assuming moves will be generated.
+    ## Detailed answer
+
+    A move operation transfers state from an object that is about to be discarded or explicitly treated as movable:
+
+    ```cpp
+    Buffer destination = std::move(source);
+    ```
+
+    `std::move` is a cast that allows move overloads to be selected; it does not itself transfer anything.
+
+    A user-declared destructor prevents implicit move generation in common cases. The same object may then fall back to copying if a copy operation is available, sometimes unexpectedly.
+
+    ### Default moves with owning raw pointers
+
+    Blindly defaulting move operations for a raw owning pointer is unsafe:
+
+    ```cpp
+    Buffer(Buffer&&) = default; // copies pointer bits; source still owns it
+    ```
+
+    Both objects would still delete the address. A manual move must empty the source, or better, ownership should use `std::unique_ptr`/`std::vector`.
+
+    ### `noexcept`
+
+    Standard containers prefer moving during reallocation when a move constructor is `noexcept`; otherwise they may copy to preserve exception guarantees.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.11'
   topic: Copy Construction and Copy Assignment
   question: What is object slicing?
   answer: |-
+    ## Short answer
+
     Copying a derived object into a base object by value discards the derived portion. For polymorphic copying, consider an explicit virtual `clone()` interface.
 
-    **More detail:** Slicing loses derived state and dynamic behavior; polymorphic APIs should generally pass or own objects through pointers or references.
+    ## Detailed answer
+
+    Copying by base value slices derived state:
+
+    ```cpp
+    Derived derived;
+    Base base = derived;
+    ```
+
+    Only the `Base` subobject is copied into `base`.
+
+    Polymorphic objects are normally handled through references or pointers:
+
+    ```cpp
+    void process(const Base& object);
+    ```
+
+    If an independent polymorphic copy is required, use a virtual clone pattern:
+
+    ```cpp
+    class Base {
+    public:
+        virtual ~Base() = default;
+        virtual std::unique_ptr<Base> clone() const = 0;
+    };
+
+    class Derived : public Base {
+    public:
+        std::unique_ptr<Base> clone() const override {
+            return std::make_unique<Derived>(*this);
+        }
+    };
+    ```
+
+    ### Tradeoff
+
+    Cloning supports value-like polymorphism but requires each derived type to implement correct copying. Sometimes a non-polymorphic value type or type-erasure wrapper is cleaner.
   source: 05_copy_constructor_and_copy_assignment.md
 - id: '05.12'
   topic: Copy Construction and Copy Assignment
   question: What is the preferred modern copy-design rule?
   answer: |-
+    ## Short answer
+
     Rule of Zero: compose the type from members whose ownership, copy, move, and destruction behavior are already correct.
 
-    **More detail:** The Rule of Zero reduces custom lifetime code, which in turn reduces exception-safety and maintenance risks.
+    ## Detailed answer
+
+    Prefer composing resource-managing members:
+
+    ```cpp
+    class Buffer {
+    public:
+        explicit Buffer(std::size_t size)
+            : data_(size) {}
+
+        int& operator[](std::size_t index) {
+            return data_[index];
+        }
+
+        const int& operator[](std::size_t index) const {
+            return data_[index];
+        }
+
+    private:
+        std::vector<int> data_;
+    };
+    ```
+
+    No destructor, copy constructor, copy assignment, move constructor, or move assignment is needed.
+
+    `std::vector` already supplies:
+
+    - Destruction.
+    - Deep copying.
+    - Efficient moving.
+    - Exception-safe assignment.
+    - Size tracking.
+
+    ### Rule of Zero benefit
+
+    Fewer handwritten special members mean:
+
+    - Fewer ownership bugs.
+    - Better exception safety.
+    - Easier maintenance.
+    - Correct behavior when new members are added.
+    - Better compatibility with standard containers.
+
+    ### Pimpl nuance
+
+    A class owning an incomplete implementation through `std::unique_ptr<Impl>` may need an out-of-line destructor where `Impl` is complete:
+
+    ```cpp
+    class Widget {
+    public:
+        Widget();
+        ~Widget();
+
+    private:
+        class Impl;
+        std::unique_ptr<Impl> impl_;
+    };
+    ```
+
+    This is still RAII design, even though a destructor declaration is needed for completeness/ABI structure.
+
+    ### Rule of Three
+
+    Manual resource management in pre-move C++ often requires:
+
+    ```cpp
+    ~T();
+    T(const T&);
+    T& operator=(const T&);
+    ```
+
+    ### Rule of Five
+
+    Modern C++ adds:
+
+    ```cpp
+    T(T&&) noexcept;
+    T& operator=(T&&) noexcept;
+    ```
+
+    A manual resource owner should consider all five operations.
+
+    ### Rule of Zero
+
+    Prefer needing none by composing standard RAII types.
+
+    ### These are design heuristics, not compiler laws
+
+    Defining one function does not mechanically mean every other one must be handwritten. It means the ownership design requires deliberate review of the full set.
+
+    For example, a polymorphic base may need only:
+
+    ```cpp
+    virtual ~Base() = default;
+    ```
+
+    and explicitly defaulted copy/move behavior may or may not fit its intended semantics.
   source: 05_copy_constructor_and_copy_assignment.md
 assets: {}
 study_progress:

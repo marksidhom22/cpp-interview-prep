@@ -12,100 +12,635 @@ cards:
   topic: References vs Pointers
   question: What is the core difference between a pointer and a reference?
   answer: |-
+    ## Short answer
+
     A pointer is an object that stores an address. A reference is an alias for another object.
 
-    **More detail:** A pointer has its own value and can be copied or changed to refer elsewhere; a reference acts as another name for its referent.
+    ## Detailed answer
+
+    ```cpp
+    int x = 10;
+
+    int* p = &x;
+    ```
+
+    Access the object through dereferencing:
+
+    ```cpp
+    *p = 20;
+    ```
+
+    You explicitly say:
+
+    > Follow this address.
+
+    ```cpp
+    int& r = x;
+    ```
+
+    No explicit dereference is required:
+
+    ```cpp
+    r = 20;
+    ```
+
+    It looks exactly as though you're manipulating `x`.
+
+    ```cpp
+    int x = 10;
+    int& r = x;
+
+    r++;
+
+    std::cout << x;  // 11
+    ```
+
+    ---
+
+    # 4. References Must Be Initialized
+
+    This is valid:
+
+    ```cpp
+    int* p;
+    ```
+
+    Although `p` is uninitialized and using it would be dangerous.
+
+    This is not valid:
+
+    ```cpp
+    int& r;
+    ```
+
+    A reference needs an object immediately:
+
+    ```cpp
+    int x = 10;
+    int& r = x;
+    ```
+
+    The language is expressing:
+
+    > A reference must refer to something.
+
+    This is why references work well for APIs where an argument is required.
+
+    ---
+
+    # 5. Pointers Can Be Null
+
+    A pointer can deliberately represent:
+
+    > No object.
+
+    ```cpp
+    int* p = nullptr;
+    ```
+
+    Then you can check it:
+
+    ```cpp
+    if (p != nullptr) {
+        std::cout << *p;
+    }
+    ```
+
+    This makes pointers useful when the relationship is optional.
+
+    For example:
+
+    ```cpp
+    void configure(Device* device)
+    {
+        if (device != nullptr) {
+            device->configure();
+        }
+    }
+    ```
+
+    A normal reference cannot intentionally represent “nothing”:
+
+    ```cpp
+    void configure(Device& device)
+    {
+        device.configure();
+    }
+    ```
+
+    The API tells the caller:
+
+    > You must give me a `Device`.
+
+    A useful default rule is:
+
+    ```text
+    T&  -> object required
+    T*  -> object may be absent
+    ```
+
+    This is not universal, but it is a strong default.
+
+    ---
+
+    # 6. Can References Be Null?
+
+    At the C++ language-model level, a valid reference must refer to an object.
+
+    Do not do this:
+
+    ```cpp
+    int* p = nullptr;
+    int& r = *p;
+    ```
+
+    This enters undefined-behavior territory.
+
+    Do not treat “null references” as a valid C++ state.
+
+    When you see:
+
+    ```cpp
+    T&
+    ```
+
+    design your reasoning around the idea that an actual object is required.
+
+    ---
+
+    # 7. References Cannot Be Reseated
+
+    This distinction is extremely important.
+
+    With a pointer:
+
+    ```cpp
+    int x = 10;
+    int y = 20;
+
+    int* p = &x;
+
+    p = &y;
+    ```
+
+    Initially:
+
+    ```text
+    p -> x
+    ```
+
+    After reassignment:
+
+    ```text
+    p -> y
+    ```
+
+    Pointers can change what they point to.
+
+    Now consider a reference:
+
+    ```cpp
+    int x = 10;
+    int y = 20;
+
+    int& r = x;
+
+    r = y;
+    ```
+
+    This does **not** make `r` reference `y`.
+
+    It means:
+
+    ```cpp
+    x = y;
+    ```
+
+    because `r` remains an alias for `x`.
+
+    Afterward:
+
+    ```cpp
+    x == 20
+    y == 20
+    ```
+
+    and:
+
+    ```cpp
+    &r == &x
+    ```
+
+    The reference remains bound to `x`.
+
+    Conceptually:
+
+    ```cpp
+    int& r = x;    // binding happens here
+
+    r = y;         // assignment to x, NOT rebinding
+    ```
+
+    This is one of the most important interview-level reference concepts.
+
+    ---
+
+    # 8. A Pointer Itself Is an Object
+
+    ```cpp
+    int x = 10;
+    int* p = &x;
+    ```
+
+    `p` itself occupies storage.
+
+    For example, on many 64-bit systems:
+
+    ```cpp
+    sizeof(p)
+    ```
+
+    will be 8 bytes.
+
+    And:
+
+    ```cpp
+    &p
+    ```
+
+    is meaningful.
+
+    You can have:
+
+    ```cpp
+    int** pp = &p;
+    ```
+
+    because `p` itself is an object.
+
+    References have different language semantics. They are aliases rather than pointer-like objects in the C++ abstract machine.
+
+    If:
+
+    ```cpp
+    int x;
+    int& r = x;
+    ```
+
+    then:
+
+    ```cpp
+    sizeof(r)
+    ```
+
+    is:
+
+    ```cpp
+    sizeof(int)
+    ```
+
+    not “the size of a reference.”
+
+    You're asking for the size of the referred-to expression.
+
+    ---
+
+    # 9. How Are References Implemented?
+
+    The C++ language does not require a reference to be internally implemented as a pointer.
+
+    However, compilers frequently implement references using addresses when necessary.
+
+    For example:
+
+    ```cpp
+    void increment(int& x)
+    {
+        ++x;
+    }
+    ```
+
+    may compile into machine code conceptually similar to:
+
+    ```cpp
+    void increment(int* x)
+    {
+        ++(*x);
+    }
+    ```
+
+    At the ABI or machine-code level, an address may be passed in a register.
+
+    But this does **not** mean:
+
+    > A C++ reference is just a pointer.
+
+    That confuses implementation with language semantics.
+
+    A strong interview answer is:
+
+    > References are aliases semantically. A compiler may implement them using addresses under the hood, but C++ gives references stronger semantic constraints than pointers, such as mandatory initialization and no reseating.
+
+    ---
+
+    # 10. Passing by Value vs Pointer vs Reference
   source: 01_cpp_references_vs_pointers.md
 - id: '01.2'
   topic: References vs Pointers
   question: What contracts do `T&`, `const T&`, `T*`, and `const T*` express?
   answer: |-
+    ## Short answer
+
     - `T&`: required, mutable, non-owning alias.
     - `const T&`: required, read-only through this alias, non-owning.
     - `T*`: nullable and reseatable address, normally non-owning.
     - `const T*`: nullable, reseatable pointer giving read-only access to `T`.
 
-    **More detail:** The type communicates whether a value is required, nullable, mutable through this access path, and owning; raw handles alone do not own.
+    ## Detailed answer
+
+    These types communicate two independent API properties: whether the argument is required and whether mutation is allowed through that access path.
+
+    | Type | Nullable? | Reseatable? | Mutation through it? | Typical meaning |
+    |---|---:|---:|---:|---|
+    | `T&` | No | No | Yes | required mutable borrow |
+    | `const T&` | No | No | No | required read-only borrow |
+    | `T*` | Yes | Yes | Yes | optional mutable borrow |
+    | `const T*` | Yes | Yes | No | optional read-only borrow |
+
+    None of these types normally owns the object. Use an owning value, container, or smart pointer when ownership transfer or sharing is part of the contract.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.3'
   topic: References vs Pointers
   question: What does `ref = other;` do?
   answer: |-
+    ## Short answer
+
     It assigns `other` to the object already named by `ref`; it does not reseat the reference.
 
-    **More detail:** After initialization, `ref` continues to designate its original object, so assignment writes into that object.
+    ## Detailed answer
+
+    A reference is bound during initialization and is not later reseated. Assignment through a reference therefore invokes assignment on the referred object.
+
+    ```cpp
+    int first = 1;
+    int second = 9;
+    int& ref = first;
+
+    ref = second; // assigns 9 to first; ref still aliases first
+    ```
+
+    After the assignment, both `first` and `second` contain `9`, and `&ref == &first` remains true. By contrast, assigning a pointer changes the stored address:
+
+    ```cpp
+    int* ptr = &first;
+    ptr = &second; // ptr is now reseated
+    ```
+
+    This distinction is why a reference expresses one stable alias while a pointer can represent a changing traversal or optional target.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.4'
   topic: References vs Pointers
   question: Can a valid reference be null or be reseated?
   answer: |-
+    ## Short answer
+
     No. A reference must be initialized and cannot later be reseated. Invalid tricks can manufacture a bad reference, but using one has undefined behavior and is not a valid optional-state design.
 
-    **More detail:** Use a pointer or `std::optional<std::reference_wrapper<T>>` when absence or reselection must be represented explicitly.
+    ## Detailed answer
+
+    A reference must be bound to an object when it is initialized, and the language provides no operation that reseats it. This makes `T&` a good syntax-level expression of “required object.”
+
+    ```cpp
+    void update(Device& device);  // caller must provide a Device
+    void update(Device* device);  // nullptr can represent absence
+    ```
+
+    Low-level tricks can form an invalid reference—for example, dereferencing a null pointer—but using the result has undefined behavior. That does not make null a supported reference state.
+
+    A reference can still dangle after its target's lifetime ends. Non-nullability and lifetime safety are separate properties: the type prevents an intentional empty value, but the program must still guarantee that the referred object remains alive.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.5'
   topic: References vs Pointers
   question: Do raw pointers or references express ownership?
   answer: |-
+    ## Short answer
+
     Normally no. Modern interfaces should express ownership with RAII types such as `unique_ptr`, `shared_ptr`, containers, or resource-owning classes.
 
-    **More detail:** Ownership types document cleanup responsibility and encode it in destruction, unlike a borrowed pointer or reference.
+    ## Detailed answer
+
+    A raw pointer or reference normally describes access, not lifetime management. The caller must ensure the referred object outlives every use. Ownership should be explicit in the type: a value or container owns its state, `std::unique_ptr<T>` expresses exclusive ownership, and `std::shared_ptr<T>` expresses shared lifetime.
+
+    A raw pointer can technically point to dynamically allocated storage, but the pointer type alone does not say who must release it. That ambiguity is why owning raw pointers are avoided in modern interfaces.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.6'
   topic: References vs Pointers
   question: Can pointers and references dangle?
   answer: |-
+    ## Short answer
+
     Yes. Neither keeps the target alive. The target object must outlive every use, and container operations may invalidate existing handles.
 
-    **More detail:** Lifetime safety depends on the referent outliving each use; vector reallocation, erasure, and owner destruction can invalidate handles.
+    ## Detailed answer
+
+    Both can dangle because neither extends the target's lifetime. Common causes include returning a handle to a local variable, retaining a handle after its owner is destroyed, vector reallocation, erasing a container element, and asynchronous callbacks that outlive captured objects.
+
+    ```cpp
+    const int& bad() {
+        int local = 42;
+        return local; // dangling immediately after return
+    }
+    ```
+
+    A reference's non-null syntax is not a lifetime guarantee; lifetime must still be established by design.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.7'
   topic: References vs Pointers
   question: When should an input be passed by value?
   answer: |-
+    ## Short answer
+
     For small, cheap-to-copy values, or when the function deliberately needs its own value. A by-value sink can then move from its parameter.
 
-    **More detail:** Passing by value is also useful for a sink parameter that the function will store or move from, especially for movable types.
+    ## Detailed answer
+
+    Pass small scalar or cheaply copied value types by value because the callee receives an independent value and the interface is simple. Also pass by value when the function needs to store or transform its own copy; callers can copy lvalues or move rvalues into the parameter.
+
+    ```cpp
+    class Worker {
+    public:
+        explicit Worker(std::string name) : name_{std::move(name)} {}
+    private:
+        std::string name_;
+    };
+    ```
+
+    This “value then move” sink pattern is often a good tradeoff when the function unconditionally retains the argument. It can be less suitable when copying an lvalue is expensive and the function may not keep it, or when separate `const T&` and `T&&` overloads are justified by measured performance.
+
+    Do not apply a fixed byte-size rule blindly. Consider copy cost, ownership intent, ABI conventions, and whether the type is a lightweight view such as `std::span` or `std::string_view`.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.8'
   topic: References vs Pointers
   question: When should an API use a reference versus a pointer?
   answer: |-
+    ## Short answer
+
     Use `const T&` for required read-only access, `T&` for required mutation, and `const T*` or `T*` when absence is meaningful.
 
-    **More detail:** A reference communicates required access; a pointer naturally communicates optional access, but either contract should be documented clearly.
+    ## Detailed answer
+
+    Choose the parameter type from the contract rather than from a blanket performance rule:
+
+    | Contract | Typical parameter |
+    |---|---|
+    | Required, read-only borrow | `const T&` |
+    | Required, mutable borrow | `T&` |
+    | Optional, read-only borrow | `const T*` |
+    | Optional, mutable borrow | `T*` |
+    | Transfer exclusive ownership | `std::unique_ptr<T>` |
+    | Share lifetime | `std::shared_ptr<T>` only when genuinely required |
+
+    ```cpp
+    void inspect(const Device& device);
+    void reset(Device& device);
+    void inspect_if_present(const Device* device);
+    void install(std::unique_ptr<Device> device);
+    ```
+
+    References make required presence obvious and avoid repeated null checks. Pointers make optionality and reseating visible. Neither raw form normally owns the object, so document the lifetime relationship when it is not self-evident. For contiguous sequences, prefer a range/view type such as `std::span<T>` over a pointer-plus-unrelated-length pair.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart TD
+        A[Borrowed parameter] --> B{May it be absent?}
+        B -->|Yes| C{May callee mutate it?}
+        C -->|Yes| D[T pointer]
+        C -->|No| E[const T pointer]
+        B -->|No| F{May callee mutate it?}
+        F -->|Yes| G[T reference]
+        F -->|No| H[const T reference]
+    ```
   source: 01_cpp_references_vs_pointers.md
 - id: '01.9'
   topic: References vs Pointers
   question: What should represent a borrowed contiguous buffer?
   answer: |-
+    ## Short answer
+
     Prefer `std::span<T>` when available because it carries both address and length without ownership. A naked pointer alone does not describe the range size.
 
-    **More detail:** A span does not own its elements, so its backing storage must outlive the span and any operation using it.
+    ## Detailed answer
+
+    Use `std::span<T>` for a borrowed contiguous sequence when C++20 is available. It carries a pointer and an element count together, supports arrays, vectors, and pointer/count sources, and does not own or extend the lifetime of the elements.
+
+    ```cpp
+    void normalize(std::span<float> samples) {
+        for (float& sample : samples) {
+            sample = std::clamp(sample, -1.0f, 1.0f);
+        }
+    }
+
+    std::array<float, 128> buffer{};
+    normalize(buffer);
+    ```
+
+    Use `std::span<const T>` for read-only access. A naked `T*` does not communicate the number of elements; a C-style pointer plus length can work at an ABI boundary, but the pair should be wrapped into a span as soon as practical. The caller must keep the underlying storage alive and avoid invalidating it while the span is used.
   source: 01_cpp_references_vs_pointers.md
 - id: '01.10'
   topic: References vs Pointers
   question: What is the difference between `const T*` and `T* const`?
   answer: |-
+    ## Short answer
+
     `const T*` is a reseatable pointer to read-only `T`. `T* const` is a fixed pointer to mutable `T`. `const T* const` fixes both access and pointer value.
 
-    **More detail:** Read pointer declarations from the variable outward: `const` next to the base type qualifies the pointee, while trailing `const` qualifies the pointer.
+    ## Detailed answer
+
+    ```cpp
+    const int* p = &x;
+    ```
+
+    Equivalent:
+
+    ```cpp
+    int const* p = &x;
+    ```
+
+    You cannot modify `x` through `p`:
+
+    ```cpp
+    *p = 10;   // error
+    ```
+
+    But you can change the pointer:
+
+    ```cpp
+    p = &y;
+    ```
+
+    Think:
+
+    ```text
+    pointer is mutable
+    pointee is const
+    ```
+
+    ```cpp
+    int* const p = &x;
+    ```
+
+    You can modify the object:
+
+    ```cpp
+    *p = 20;
+    ```
+
+    but cannot reseat the pointer:
+
+    ```cpp
+    p = &y;   // error
+    ```
+
+    Think:
+
+    ```text
+    pointer is const
+    pointee is mutable
+    ```
   source: 01_cpp_references_vs_pointers.md
 - id: '01.11'
   topic: References vs Pointers
   question: Why are arrays of references disallowed, while pointer arrays are valid?
   answer: |-
+    ## Short answer
+
     References are not ordinary reseatable objects with independent value semantics. Pointers are objects, so they can be stored, copied, assigned, and placed in arrays.
 
-    **More detail:** A reference cannot be default-initialized or rebound like an ordinary value, while pointers have those value semantics.
+    ## Detailed answer
+
+    An array element must be an object with its own storage, size, and assignable element semantics. References are aliases rather than objects, cannot be reseated, and do not satisfy those requirements. Pointers are ordinary objects, so an array can store and assign pointer values.
+
+    Use `std::reference_wrapper<T>` when a reseatable, storable reference-like element is needed:
+
+    ```cpp
+    std::array<std::reference_wrapper<int>, 2> refs{x, y};
+    refs[0].get() = 7;
+    ```
   source: 01_cpp_references_vs_pointers.md
 - id: '01.12'
   topic: References vs Pointers
   question: When is returning a reference safe?
   answer: |-
+    ## Short answer
+
     Only when the referred-to object outlives the caller’s use—for example, an element of a still-live object or a valid static object. Never return a reference or pointer to a local automatic object.
 
-    **More detail:** Returning a reference is safe only when the referenced storage has a lifetime that clearly exceeds the caller's use.
+    ## Detailed answer
+
+    Returning a reference is safe only when the referred object is guaranteed to outlive the caller's use of the result. Typical safe sources are the object itself (`return *this`), a member of a sufficiently long-lived object, or an element in a container whose lifetime and invalidation rules are understood.
+
+    Never return a reference to a local automatic object. Also document invalidation: a reference to a vector element may become invalid after reallocation even though the vector itself remains alive.
   source: 01_cpp_references_vs_pointers.md
 assets: {}
 study_progress:

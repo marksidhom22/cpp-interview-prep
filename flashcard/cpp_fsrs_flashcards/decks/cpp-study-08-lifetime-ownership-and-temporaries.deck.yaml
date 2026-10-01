@@ -12,97 +12,658 @@ cards:
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: How do scope, storage duration, lifetime, and ownership differ?
   answer: |-
+    ## Short answer
+
     Scope is name visibility; storage duration is how long storage exists; lifetime is when a valid object exists in that storage; ownership identifies responsibility for releasing a resource.
 
-    **More detail:** These terms answer different questions: visibility, storage availability, valid object existence, and who must release a resource.
+    ## Detailed answer
+
+    Consider:
+
+    ```cpp
+    std::unique_ptr<Device> make_device() {
+        auto device = std::make_unique<Device>();
+        return device;
+    }
+    ```
+
+    There are two objects:
+
+    1. The local `unique_ptr` object, whose name `device` has block scope and whose storage is automatic.
+    2. The `Device` object, whose storage is dynamic and whose ownership is transferred to the returned `unique_ptr`.
+
+    Returning transfers ownership; it does not move the local stack bytes into the caller.
+
+    ### Another separation example
+
+    ```cpp
+    Device* observer = nullptr;
+
+    {
+        Device device;
+        observer = &device;
+    }
+    ```
+
+    After the block:
+
+    - The name `device` is out of scope.
+    - The automatic storage for its object is no longer active.
+    - The `Device` lifetime has ended.
+    - `observer` still exists.
+    - `observer` is dangling and must not be dereferenced.
+
+    The pointer's lifetime and the pointee's lifetime are independent.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart TD
+        S[Scope: where a name is visible] --> O[Object]
+        D[Storage duration: how long storage exists] --> O
+        L[Lifetime: when an object exists in that storage] --> O
+        W[Ownership: who releases or controls the resource] --> O
+    ```
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.2'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: What are C++’s four storage-duration categories?
   answer: |-
+    ## Short answer
+
     Automatic, static, thread, and dynamic storage duration.
 
-    **More detail:** Dynamic storage is commonly managed through RAII owners; choosing a duration does not by itself define who owns the resource.
+    ## Detailed answer
+
+    C++ defines four storage-duration categories.
+
+    ### Automatic storage duration
+
+    Most local variables and parameters:
+
+    ```cpp
+    void process(int parameter) {
+        Frame frame;
+    }
+    ```
+
+    Their storage normally lasts until the enclosing block/function exits.
+
+    ### Static storage duration
+
+    Namespace-scope variables and objects declared static:
+
+    ```cpp
+    DeviceRegistry registry;
+
+    void f() {
+        static int calls{};
+    }
+    ```
+
+    Their storage lasts for the program's execution.
+
+    ### Thread storage duration
+
+    ```cpp
+    thread_local Error last_error;
+    ```
+
+    One object exists per thread for that thread's lifetime.
+
+    ### Dynamic storage duration
+
+    Storage obtained through allocation facilities:
+
+    ```cpp
+    auto device = std::make_unique<Device>();
+    ```
+
+    The pointee's storage lasts until the owning mechanism deallocates it.
+
+    ### Subobjects
+
+    A data member or base subobject normally has the storage duration of its complete containing object.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.3'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: Can a name be out of scope while its object remains alive?
   answer: |-
+    ## Short answer
+
     Yes. A local static object persists after leaving its block, and a dynamic object can outlive the local pointer that originally referred to it.
 
-    **More detail:** Name visibility and object lifetime are independent, which is why a pointer can outlive the local name but still risk leaking its allocation.
+    ## Detailed answer
+
+    Scope controls name visibility, not necessarily lifetime.
+
+    ```cpp
+    int value = 1;
+
+    void f() {
+        int value = 2; // hides outer value
+        {
+            int value = 3; // hides function-local value
+        }
+    }
+    ```
+
+    Common scopes:
+
+    - Block scope.
+    - Function parameter scope.
+    - Class scope.
+    - Namespace scope.
+    - Template parameter scope.
+    - Enumeration scope for scoped enums.
+
+    ### Name out of scope, object still alive
+
+    ```cpp
+    Device& device() {
+        static Device instance;
+        return instance;
+    }
+    ```
+
+    The local name `instance` is visible only inside the function, while the object persists.
+
+    ### Object dead while pointer name remains visible
+
+    ```cpp
+    Device* pointer;
+
+    {
+        Device local;
+        pointer = &local;
+    }
+
+    // pointer is visible but dangles
+    ```
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.4'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: Where does a `unique_ptr` live?
   answer: |-
+    ## Short answer
+
     The `unique_ptr` object may have automatic storage while the object it owns has dynamic storage. They are separate objects with linked ownership lifetimes.
 
-    **More detail:** Destroying the automatic `unique_ptr` releases its dynamically stored pointee, linking two objects with different storage durations.
+    ## Detailed answer
+
+    The smart-pointer object and its pointee have independent storage durations. A local `std::unique_ptr<T>` usually has automatic storage, while the object created by `std::make_unique<T>()` has dynamic storage. Moving the `unique_ptr` transfers ownership of that same pointee; it does not move the allocation itself.
+
+    ```cpp
+    auto p = std::make_unique<Device>(); // p: automatic; Device: dynamic
+    auto q = std::move(p);               // q now owns the Device
+    ```
+
+    A `unique_ptr` can itself be a data member, a static object, or dynamically allocated, so saying that it “lives on the stack” is not generally correct.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.5'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: Why should `new`/`delete` not be mixed with `malloc`/`free`?
   answer: |-
+    ## Short answer
+
     They use different allocation/lifetime mechanisms. `new` constructs and `delete` destroys; `malloc` and `free` only manage raw storage. Mismatching them is undefined behavior.
 
-    **More detail:** Pair `new` with `delete` and `new[]` with `delete[]`; prefer standard containers and smart pointers to manage these pairs automatically.
+    ## Detailed answer
+
+    ### `new`
+
+    ```cpp
+    Widget* widget = new Widget{arguments};
+    ```
+
+    Conceptually:
+
+    1. Obtain suitably sized/aligned storage.
+    2. Construct `Widget`.
+    3. Return a typed pointer.
+
+    ### `delete`
+
+    ```cpp
+    delete widget;
+    ```
+
+    Conceptually:
+
+    1. Run the destructor.
+    2. Deallocate storage.
+
+    Arrays must use matching syntax:
+
+    ```cpp
+    Widget* widgets = new Widget[count];
+    delete[] widgets;
+    ```
+
+    Mismatching `delete` and `delete[]` is undefined behavior.
+
+    ### `malloc` and `free`
+
+    ```cpp
+    void* storage = std::malloc(sizeof(Widget));
+    std::free(storage);
+    ```
+
+    `malloc` obtains raw storage but does not ordinarily construct a C++ class object. `free` does not run a destructor.
+
+    Do not mix families:
+
+    ```cpp
+    // free(new Widget);        // wrong
+    // delete malloc_storage;   // wrong
+    ```
+
+    ### Prefer higher-level RAII
+
+    ```cpp
+    auto widget = std::make_unique<Widget>();
+    std::vector<Widget> widgets(count);
+    ```
+
+    Direct manual allocation is mainly needed when implementing containers, allocators, pools, low-level runtimes, or placement/lifetime facilities.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.6'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: Does a raw pointer, reference, iterator, span, or view extend lifetime?
   answer: |-
+    ## Short answer
+
     No. These are borrowed handles; their source object must remain alive and valid.
 
-    **More detail:** A borrowed handle is valid only while its owner and the referenced region remain alive and uninvalidated.
+    ## Detailed answer
+
+    Non-owning handles include:
+
+    - Raw pointers.
+    - References.
+    - Iterators.
+    - `std::span`.
+    - `std::string_view`.
+    - Reference wrappers.
+    - Many library-specific views.
+
+    They do not keep the source alive.
+
+    ### Dangling pointer
+
+    ```cpp
+    int* pointer;
+    {
+        int value = 10;
+        pointer = &value;
+    }
+    // *pointer is invalid
+    ```
+
+    ### Dangling reference
+
+    ```cpp
+    const int& bad_reference() {
+        int value = 10;
+        return value;
+    }
+    ```
+
+    ### Dangling view
+
+    ```cpp
+    std::string_view view = std::string{"temporary"};
+    // temporary string is already destroyed after the statement
+    ```
+
+    The view may still hold an address and length, but the characters no longer exist.
+
+    ### Use-after-free
+
+    ```cpp
+    int* pointer = new int{10};
+    delete pointer;
+    // *pointer is invalid
+    ```
+
+    Setting one pointer to null does not repair other aliases:
+
+    ```cpp
+    int* alias = pointer;
+    pointer = nullptr;
+    // alias still dangles
+    ```
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.7'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: Why is returning a reference to a local object wrong?
   answer: |-
+    ## Short answer
+
     The local object’s lifetime ends when the function returns, leaving the returned reference dangling.
 
-    **More detail:** Returning the local object's address or reference does not extend its lifetime; return by value or return a handle to longer-lived storage.
+    ## Detailed answer
+
+    ### Invalid local return
+
+    ```cpp
+    const std::string& name() {
+        std::string local = "sensor";
+        return local; // dangling
+    }
+    ```
+
+    The local dies when the function returns.
+
+    ### Valid member return with contract
+
+    ```cpp
+    class Device {
+    public:
+        const std::string& name() const {
+            return name_;
+        }
+
+    private:
+        std::string name_;
+    };
+    ```
+
+    The reference remains valid only while:
+
+    - The `Device` remains alive.
+    - The member is not replaced or invalidated in a way that ends that referenced state.
+    - Concurrent mutation does not introduce a race.
+
+    ### Return by value
+
+    ```cpp
+    std::string name() const {
+        return name_;
+    }
+    ```
+
+    This gives the caller independent ownership and often uses efficient copy/move/elision. Prefer it when lifetime independence and encapsulation outweigh copy cost.
+
+    ### Static return
+
+    A reference to a static object can remain valid until program termination, but global shared state and destruction-order concerns remain.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.8'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: How long do most temporaries live?
   answer: |-
+    ## Short answer
+
     Until the end of the full expression in which they were created, unless a specific lifetime-extension rule applies.
 
-    **More detail:** The end of the full expression is typically the semicolon, but binding and language-specific lifetime rules can extend selected temporaries.
+    ## Detailed answer
+
+    A temporary is often created as an intermediate result:
+
+    ```cpp
+    std::string text = make_prefix() + make_suffix();
+    ```
+
+    The addition may produce a temporary string used to initialize `text`.
+
+    Most temporaries are destroyed at the end of the **full expression**, usually the statement:
+
+    ```cpp
+    consume(Widget{}); // temporary survives through consume, then is destroyed
+    ```
+
+    ### Parameter binding
+
+    ```cpp
+    void print(const std::string& text);
+
+    print("hello");
+    ```
+
+    A temporary `std::string` can be constructed and bound to the const reference. It survives until the full expression containing the call ends.
+
+    The callee must not store a reference for later:
+
+    ```cpp
+    const std::string* saved{};
+
+    void save(const std::string& text) {
+        saved = &text;
+    }
+
+    save(std::string{"temporary"});
+    // saved now dangles
+    ```
+
+    ### Materialization and optimization
+
+    Modern C++ prvalue rules can construct results directly in their final destination. Even when no temporary object is materialized at runtime, source-level lifetime semantics remain important.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.9'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: When can a reference extend a temporary’s lifetime?
   answer: |-
+    ## Short answer
+
     Certain direct bindings, such as a local `const T&` bound directly to a temporary, extend it to the reference’s lifetime. Passing through or returning another reference does not re-extend it.
 
-    **More detail:** Lifetime extension is not transitive through a function return or another reference, so inspect where the temporary is first bound.
+    ## Detailed answer
+
+    Directly binding a local reference can extend a temporary's lifetime:
+
+    ```cpp
+    const std::string& text = std::string{"hello"};
+    ```
+
+    The temporary string lives as long as `text`.
+
+    Rvalue references can also extend lifetime in direct local binding:
+
+    ```cpp
+    std::string&& text = std::string{"hello"};
+    ```
+
+    ### No re-extension through another reference
+
+    ```cpp
+    const std::string& identity(const std::string& value) {
+        return value;
+    }
+
+    const std::string& ref = identity(std::string{"hello"});
+    ```
+
+    The temporary is bound to the function parameter only for the call's full expression. Returning the reference does not extend the temporary again. `ref` dangles after the initialization statement.
+
+    ### Returning a temporary by reference
+
+    ```cpp
+    const std::string& bad() {
+        return std::string{"hello"};
+    }
+    ```
+
+    The temporary does not survive as a valid returned object. Return by value instead.
+
+    ### Prefer ownership over memorizing edge cases
+
+    When a reference or view may escape a full expression, use an owning value unless lifetime is unambiguous.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.10'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: What commonly invalidates container handles?
   answer: |-
+    ## Short answer
+
     Reallocation, erasure, and container-specific structural changes. The exact rules differ by container and operation and must be checked.
 
-    **More detail:** Check the exact operation's invalidation guarantees in the container requirements; do not infer them from pointer stability alone.
+    ## Detailed answer
+
+    A live container does not guarantee that every pointer/reference/iterator into it remains valid.
+
+    ### Vector reallocation
+
+    ```cpp
+    std::vector<int> values;
+    values.reserve(1);
+    values.push_back(10);
+
+    int& first = values[0];
+    values.push_back(20); // may reallocate
+
+    // first may now dangle
+    ```
+
+    Reallocation moves/copies elements to new storage and invalidates pointers, references, and iterators to old elements.
+
+    ### Erasure
+
+    Erasing from a vector invalidates iterators/references at or after the erased position. Other containers have different rules.
+
+    ### `reserve` versus `resize`
+
+    - `reserve(n)` changes capacity without changing element count.
+    - `resize(n)` changes size and constructs/destroys elements.
+
+    Reserving sufficient capacity can prevent reallocation until capacity is exceeded, but it is not a universal lifetime guarantee.
+
+    ### Unordered containers
+
+    Rehashing invalidates iterators, while references/pointers to elements have different standard guarantees. Always check the specific operation/container rules rather than generalizing.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.11'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: Why are reference-capturing lambdas dangerous asynchronously?
   answer: |-
+    ## Short answer
+
     The closure may execute after captured local objects have died, leaving dangling references. Capture owned values or establish an explicit shared-lifetime strategy.
 
-    **More detail:** Asynchronous work needs an explicit lifetime policy, such as owning a value or sharing ownership for the duration of the task.
+    ## Detailed answer
+
+    ### Reference capture
+
+    ```cpp
+    std::function<void()> make_callback() {
+        int count = 0;
+
+        return [&count] {
+            ++count;
+        }; // returned lambda holds dangling reference
+    }
+    ```
+
+    Capture by value when the callback must own independent state:
+
+    ```cpp
+    return [count]() mutable {
+        ++count;
+    };
+    ```
+
+    ### Capturing `this`
+
+    ```cpp
+    class Device {
+    public:
+        auto callback() {
+            return [this] {
+                poll();
+            };
+        }
+    };
+    ```
+
+    The lambda does not keep the object alive. Calling it after `Device` destruction is invalid.
+
+    Shared lifetime can be explicit:
+
+    ```cpp
+    auto self = shared_from_this();
+    return [self] {
+        self->poll();
+    };
+    ```
+
+    This requires an appropriate shared-ownership design and can create cycles if callbacks are stored by the same object. A `weak_ptr` may be better.
+
+    ### Detached/asynchronous work
+
+    A thread or asynchronous operation can easily outlive locals:
+
+    ```cpp
+    std::thread worker([&local] {
+        use(local);
+    });
+    ```
+
+    Joining before local destruction may make it safe. `std::jthread` helps tie joining to scope, but captured object lifetimes still require review.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 - id: '08.12'
   topic: Storage, Scope, Lifetime, Ownership, and Temporaries
   question: What are the major ownership models?
   answer: |-
+    ## Short answer
+
     Value ownership, exclusive ownership, shared ownership, and non-owning borrowing. The type system should make the chosen model visible.
 
-    **More detail:** Make ownership visible in interfaces so reviewers can identify who keeps an object alive and who is responsible for cleanup.
+    ## Detailed answer
+
+    ### Direct value ownership
+
+    ```cpp
+    Device device;
+    ```
+
+    The containing scope/object owns the value directly.
+
+    ### Exclusive dynamic ownership
+
+    ```cpp
+    std::unique_ptr<Device> device;
+    ```
+
+    One owner; movable, not copyable.
+
+    ### Shared ownership
+
+    ```cpp
+    std::shared_ptr<Device> device;
+    ```
+
+    Reference-counted ownership. The object dies when the last owning shared pointer dies.
+
+    Costs include allocation/control block, reference-count updates, and cycle risk.
+
+    ### Weak observation
+
+    ```cpp
+    std::weak_ptr<Device> observer;
+    ```
+
+    Does not extend lifetime. Call `lock()` to obtain temporary shared ownership if the object still exists.
+
+    ### Borrowing
+
+    ```cpp
+    Device& required;
+    Device* optional;
+    std::span<const std::byte> bytes;
+    ```
+
+    No ownership. The source must outlive every use.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart TD
+        A[Resource] --> B[Value ownership]
+        A --> C[Exclusive ownership: unique_ptr]
+        A --> D[Shared ownership: shared_ptr]
+        A --> E[Non-owning observation: reference pointer span view]
+        D --> F[weak_ptr observes without extending lifetime]
+    ```
   source: 08_stack_heap_lifetime_scope_temporaries.md
 assets: {}
 study_progress:

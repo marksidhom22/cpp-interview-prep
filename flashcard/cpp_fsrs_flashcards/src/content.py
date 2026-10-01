@@ -99,17 +99,44 @@ def _plain_speech_text(markdown: str) -> str:
 
 def render_speech_control(markdown: str, label: str, *, autoplay: bool = False) -> None:
     text = json.dumps(_plain_speech_text(markdown), ensure_ascii=False).replace("<", "\\u003c")
+    label_text = json.dumps(label, ensure_ascii=False).replace("<", "\\u003c")
     document = f"""
     <!doctype html><html><head><style>
       html,body{{margin:0;background:transparent;font-family:Inter,system-ui,sans-serif}}
-      .row{{display:flex;gap:8px}}button{{border:1px solid #2c5663;border-radius:9px;
+      .row{{display:flex}}button{{border:1px solid #2c5663;border-radius:9px;
       background:#10242d;color:#e8f3f3;padding:9px 13px;cursor:pointer;font-weight:700}}
-    </style></head><body><div class="row"><button id="speak">🔊 {html.escape(label)}</button>
-    <button id="stop">Stop</button></div><script>
-      const text={text}; const speak=()=>{{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);
-      u.rate=.95;speechSynthesis.speak(u)}};
-      document.getElementById('speak').onclick=speak;
-      document.getElementById('stop').onclick=()=>speechSynthesis.cancel();
+      button[data-speaking="true"]{{border-color:#f4ba68;color:#f4ba68}}
+    </style></head><body><div class="row">
+    <button id="speech-toggle" data-speaking="false">🔊 {html.escape(label)}</button>
+    </div><script>
+      const text={text};
+      const readLabel={label_text};
+      const button=document.getElementById('speech-toggle');
+      let active=false;
+      let utterance=null;
+      const setButtonState=(speaking)=>{{
+        active=speaking;
+        button.dataset.speaking=String(speaking);
+        button.textContent=speaking ? '■ Stop' : '🔊 '+readLabel;
+        button.setAttribute('aria-label', speaking ? 'Stop reading' : readLabel);
+      }};
+      const stop=()=>{{
+        setButtonState(false);
+        speechSynthesis.cancel();
+      }};
+      const speak=()=>{{
+        speechSynthesis.cancel();
+        utterance=new SpeechSynthesisUtterance(text);
+        utterance.rate=.95;
+        utterance.onend=()=>setButtonState(false);
+        utterance.onerror=()=>setButtonState(false);
+        setButtonState(true);
+        speechSynthesis.speak(utterance);
+      }};
+      button.onclick=()=>active ? stop() : speak();
+      setInterval(()=>{{
+        if(active && !speechSynthesis.speaking && !speechSynthesis.pending) setButtonState(false);
+      }},250);
       if({str(autoplay).lower()}) speak();
     </script></body></html>
     """

@@ -1,0 +1,1309 @@
+format_version: 1
+id: american-english-practice
+title: American English — Natural Conversation Practice
+description: Grammar, vocabulary, pronunciation, natural phrasing, and fluency cards combined from the September 30 and October 1, 2026 English practice notes.
+study_settings:
+  desired_retention: 0.9
+  new_cards_per_day: 10
+  timezone_name: America/Los_Angeles
+  maximum_interval_days: 3650
+cards:
+- id: en-001
+  topic: Past Events and Interviews
+  question: When describing a finished interview, should you say “affects” or “affected”?
+  answer: |-
+    ## Short answer
+
+    Use **affected** because the interview and its effect happened in the past.
+
+    ## Detailed answer
+
+    Keep the main verbs in the past when describing a completed event:
+
+    - “I was nervous, and it **affected** my performance.”
+    - “My anxiety **affected** the way I answered.”
+
+    **Affects** is present tense and describes something that is true now or happens regularly:
+
+    - “Anxiety sometimes **affects** my performance.”
+
+    A useful check is to ask: *Am I describing one finished event, or a general/current pattern?*
+  tags:
+  - grammar
+  - past-tense
+  - interview
+  source: english_learning_notes_2026-09-30.md
+- id: en-002
+  topic: Past Events and Interviews
+  question: When should you use “during the interview” instead of “at the interview”?
+  answer: |-
+    ## Short answer
+
+    Use **during the interview** to emphasize something that happened while the interview was in progress.
+
+    ## Detailed answer
+
+    “During” focuses on the time inside an event:
+
+    - “I was nervous **during the interview**.”
+    - “My anxiety affected my answers **during the interview**.”
+
+    “At the interview” identifies the event or location more generally and can also be grammatical:
+
+    - “I met three engineers **at the interview**.”
+
+    For describing your feelings or performance while the conversation was happening, **during the interview** is usually the clearer choice.
+  tags:
+  - grammar
+  - prepositions
+  - interview
+  source: english_learning_notes_2026-09-30.md
+- id: en-003
+  topic: Emotions and Confidence
+  question: What is the difference between “nervous” and “nerves”?
+  answer: |-
+    ## Short answer
+
+    **Nervous** is an adjective; **nerves** is a noun.
+
+    ## Detailed answer
+
+    Use **nervous** to describe how someone feels:
+
+    - “I was **nervous** before the interview.”
+    - “I get **nervous** under pressure.”
+
+    Use **nerves** to name the anxious feeling or reaction:
+
+    - “I need to manage my **nerves**.”
+    - “My **nerves** got the better of me.”
+
+    “My nerves got the better of me” means that nervousness became strong enough to hurt your performance.
+  tags:
+  - vocabulary
+  - emotions
+  - interview
+  source: english_learning_notes_2026-09-30.md
+- id: en-004
+  topic: Emotions and Confidence
+  question: How can you naturally describe controlling fear and becoming more confident?
+  answer: |-
+    ## Short answer
+
+    Say: **“I want to manage my anxiety, stay calm under pressure, and trust myself more.”**
+
+    ## Detailed answer
+
+    Natural alternatives include:
+
+    - “I want to **manage my emotions better under pressure**.”
+    - “I want to **control my anxiety**.”
+    - “I want to **be less afraid and more confident**.”
+    - “I want to **have more confidence in my abilities**.”
+
+    Avoid “control my fear emotions.” In English, **fear** and **anxiety** can be nouns by themselves, while **emotions** works naturally in “manage my emotions.”
+  tags:
+  - natural-english
+  - emotions
+  - confidence
+  source: english_learning_notes_2026-09-30.md
+- id: en-005
+  topic: Emotions and Confidence
+  question: How can you concisely explain what you learned from a nervous interview?
+  answer: |-
+    ## Short answer
+
+    “I realized that fear can limit my abilities during interviews, so I need to work on staying calm and trusting myself.”
+
+    ## Detailed answer
+
+    Other natural versions are:
+
+    - “I realized that managing my nerves is an important part of performing well in interviews.”
+    - “Being too nervous can prevent me from showing what I actually know.”
+    - “I learned that staying calm can make a big difference in my performance.”
+
+    These sentences follow a useful structure: **realization + consequence + next action**.
+
+    ```mermaid
+    flowchart LR
+        A[What happened] --> B[What I realized]
+        B --> C[How it affected me]
+        C --> D[What I will improve]
+    ```
+  tags:
+  - fluency
+  - interview
+  - storytelling
+  source: english_learning_notes_2026-09-30.md
+- id: en-006
+  topic: Hypothetical Situations
+  question: How do you naturally describe changing a past situation?
+  answer: |-
+    ## Short answer
+
+    Use **“If I could do it again, I would…”** or **“If I had another chance, I would…”**
+
+    ## Detailed answer
+
+    Natural examples:
+
+    - “If I could redo the interview, I would focus more on staying calm.”
+    - “If I could do it again, I would remind myself that I was prepared.”
+    - “If I had another chance, I would try not to overthink every question.”
+
+    Avoid “If I would redo it.” The **if-clause** uses **could** or a past-perfect form; **would** normally appears in the result:
+
+    - “If I **had prepared** differently, I **would have felt** calmer.”
+  tags:
+  - grammar
+  - conditionals
+  - storytelling
+  source: english_learning_notes_2026-09-30.md
+- id: en-007
+  topic: Emotions and Confidence
+  question: What is the natural term for deliberate thoughts you say to yourself?
+  answer: |-
+    ## Short answer
+
+    The natural term is **self-talk**.
+
+    ## Detailed answer
+
+    Common expressions include:
+
+    - **positive self-talk**
+    - **negative self-talk**
+    - **encouraging self-talk**
+
+    Examples:
+
+    - “I want to work on my self-talk before interviews.”
+    - “Positive self-talk helps me feel more confident.”
+    - “I remind myself, ‘I am prepared. I can handle this.’”
+
+    Avoid invented expressions such as “self-thoughts” or “self-thinking” for this meaning.
+  tags:
+  - vocabulary
+  - confidence
+  - natural-english
+  source: english_learning_notes_2026-09-30.md
+- id: en-008
+  topic: Resilience
+  question: What do “resilience,” “bounce back,” and “setback” mean?
+  answer: |-
+    ## Short answer
+
+    **Resilience** is the ability to recover; **bounce back** means recover; a **setback** is a difficulty that slows progress.
+
+    ## Detailed answer
+
+    - **Resilience:** the ability to recover after difficulty and continue moving forward.
+    - **Bounce back:** an informal phrasal verb meaning to recover.
+    - **Setback:** a problem that delays or interrupts progress without necessarily ending it.
+
+    Examples:
+
+    - “She showed resilience after losing her job.”
+    - “It took me a few days to bounce back after the interview.”
+    - “One failed interview is a setback, not the end of the process.”
+  tags:
+  - vocabulary
+  - resilience
+  - phrasal-verbs
+  source: english_learning_notes_2026-09-30.md
+- id: en-009
+  topic: Subject-Verb Agreement
+  question: Why do we say “Praying and talking with God help me,” not “helps me”?
+  answer: |-
+    ## Short answer
+
+    The subject contains two coordinated activities, so it is plural and takes **help**.
+
+    ## Detailed answer
+
+    Compare:
+
+    - “**Prayer helps** me calm down.” — one singular subject
+    - “**Praying and talking with God help** me calm down.” — two activities
+
+    The conjunction **and** normally joins the two activities into a plural subject. The same rule applies elsewhere:
+
+    - “Reading and practicing **improve** my English.”
+    - “Planning and reviewing **take** time.”
+  tags:
+  - grammar
+  - subject-verb-agreement
+  source: english_learning_notes_2026-09-30.md
+- id: en-010
+  topic: Modal Verbs
+  question: What verb form follows “can”?
+  answer: |-
+    ## Short answer
+
+    Use the base verb after **can**: “can calm” and “can help.”
+
+    ## Detailed answer
+
+    Modal verbs such as **can**, **could**, **should**, **will**, and **might** are followed by the base form:
+
+    - “Prayer **can calm** my mind.”
+    - “Positive self-talk **can help** me.”
+    - “Practice **can improve** fluency.”
+
+    Do not add **-s**, **to**, or **-ing** immediately after the modal:
+
+    - Incorrect: “can helps”
+    - Incorrect: “can to help”
+    - Correct: “can help”
+  tags:
+  - grammar
+  - modal-verbs
+  source: english_learning_notes_2026-09-30.md
+- id: en-011
+  topic: Movement and Returning
+  question: How do “return,” “go back,” and “get back” differ?
+  answer: |-
+    ## Short answer
+
+    **Return** is neutral/formal, **go back** emphasizes going again, and **get back** is common conversational English for arriving back.
+
+    ## Detailed answer
+
+    Do not normally say **return back** because “return” already contains the idea of going back.
+
+    - “I **returned home** after work.”
+    - “Let’s **return to the topic**.”
+    - “I need to **go back to work**.”
+    - “I **get back from work** around six.”
+
+    ```mermaid
+    flowchart TD
+        A[Choose an expression] --> B{Desired style}
+        B -->|Neutral or formal| C[return]
+        B -->|Emphasize going again| D[go back]
+        B -->|Everyday arrival back| E[get back]
+    ```
+  tags:
+  - phrasal-verbs
+  - movement
+  - natural-english
+  source: english_learning_notes_2026-09-30.md
+- id: en-012
+  topic: Movement and Returning
+  question: Why do we say “go home” instead of “go to home”?
+  answer: |-
+    ## Short answer
+
+    With movement verbs, **home** often functions like an adverb, so it does not take **to**.
+
+    ## Detailed answer
+
+    Natural combinations include:
+
+    - go home
+    - drive home
+    - walk home
+    - get back home
+    - return home
+
+    Ordinary destination nouns still use **to**:
+
+    - “I drive **to my friend’s house**.”
+    - “I walk **to the store**.”
+    - “I go **to work**.”
+
+    Compare: “I drove **home**” but “I drove **to my apartment**.”
+  tags:
+  - grammar
+  - prepositions
+  - movement
+  source: english_learning_notes_2026-09-30.md
+- id: en-013
+  topic: Phrasal Verbs
+  question: What is the difference between “hold on” and “hold off”?
+  answer: |-
+    ## Short answer
+
+    **Hold on** means wait briefly; **hold off** means postpone something.
+
+    ## Detailed answer
+
+    Use **hold on** for a short pause happening now:
+
+    - “Hold on a second.”
+    - “Hold on, let me check.”
+
+    Use **hold off on + noun/-ing** to delay an action:
+
+    - “Let’s hold off on making a decision.”
+    - “We should hold off on the purchase.”
+    - “They held off on deploying the application.”
+
+    The preposition **on** is part of the common “hold off on” pattern.
+  tags:
+  - phrasal-verbs
+  - vocabulary
+  - prepositions
+  source: english_learning_notes_2026-09-30.md
+- id: en-014
+  topic: Prepositions
+  question: What grammatical role does “on” have in “hold off on the purchase”?
+  answer: |-
+    ## Short answer
+
+    **On** is a preposition.
+
+    ## Detailed answer
+
+    The preposition introduces the object of the expression:
+
+    - hold off **on the purchase**
+    - hold off **on deciding**
+
+    Other common verb-preposition combinations include:
+
+    - depend **on**
+    - focus **on**
+    - work **on**
+    - agree **on**
+
+    When a verb follows a preposition, use the **-ing** form: “hold off on **buying**,” not “hold off on buy.”
+  tags:
+  - grammar
+  - prepositions
+  source: english_learning_notes_2026-09-30.md
+- id: en-015
+  topic: Natural American English
+  question: What is the difference between “grab” and “bring”?
+  answer: |-
+    ## Short answer
+
+    **Grab** means quickly get something; **bring** means carry it toward a person or destination.
+
+    ## Detailed answer
+
+    **Grab** is common in casual American English:
+
+    - “I’ll grab my phone.”
+    - “Let me grab my keys.”
+
+    **Bring** focuses on movement toward someone or somewhere:
+
+    - “Please bring your laptop to the meeting.”
+    - “Can you bring me a glass of water?”
+
+    “I’ll grab my phone” means you will quickly get it. “I’ll bring my phone” means you will take it with you to the relevant destination.
+  tags:
+  - vocabulary
+  - natural-english
+  source: english_learning_notes_2026-09-30.md
+- id: en-016
+  topic: Articles
+  question: Why do we say “Tell me an interesting story”?
+  answer: |-
+    ## Short answer
+
+    A singular countable noun needs an article, and **an** comes before the vowel sound in “interesting.”
+
+    ## Detailed answer
+
+    Correct examples:
+
+    - “Tell me **an interesting story**.”
+    - “That was **an interesting conversation**.”
+    - “I heard **an interesting idea**.”
+
+    Do not say “Tell me interesting story.” The noun **story** is singular and countable, so it normally needs **a/an**, **the**, or another determiner such as **my** or **that**.
+  tags:
+  - grammar
+  - articles
+  source: english_learning_notes_2026-09-30.md
+- id: en-017
+  topic: Verb Patterns
+  question: What is the difference between “discuss” and “talk about”?
+  answer: |-
+    ## Short answer
+
+    **Discuss** takes a direct object; **talk** uses **about**.
+
+    ## Detailed answer
+
+    Correct patterns:
+
+    - “Let’s **discuss this story**.”
+    - “We **discussed the problem**.”
+    - “Let’s **talk about this story**.”
+    - “We **talked about the interview**.”
+
+    Avoid “discuss about the story.” A quick memory rule is:
+
+    - **discuss + topic**
+    - **talk about + topic**
+  tags:
+  - grammar
+  - verb-patterns
+  - prepositions
+  source: english_learning_notes_2026-09-30.md
+- id: en-018
+  topic: Possession
+  question: How do you naturally express a connection such as the repentance of Saint Peter?
+  answer: |-
+    ## Short answer
+
+    Use possessive **’s**: **“Saint Peter’s repentance.”**
+
+    ## Detailed answer
+
+    Possessive **’s** can show ownership, association, or connection:
+
+    - Saint Peter’s repentance
+    - Peter’s story
+    - my manager’s feedback
+    - the company’s decision
+
+    “The repentance of Saint Peter” is also correct but sounds more formal. Avoid placing the nouns together without a possessive marker: “Saint Peter repentance” is not natural.
+  tags:
+  - grammar
+  - possessives
+  source: english_learning_notes_2026-09-30.md
+- id: en-019
+  topic: Bible Vocabulary
+  question: What is the difference between a “disciple” and an “apostle”?
+  answer: |-
+    ## Short answer
+
+    A **disciple** is a follower or student; an **apostle** is someone sent out with a mission.
+
+    ## Detailed answer
+
+    In New Testament usage, **disciple** emphasizes learning from and following Jesus, while **apostle** emphasizes being chosen and sent as a messenger.
+
+    Natural ways to refer to Peter include:
+
+    - Saint Peter
+    - the Apostle Peter
+    - Peter the Apostle
+    - Peter, one of Jesus’s disciples
+
+    The Bible’s two major parts are **the Old Testament** and **the New Testament**.
+  tags:
+  - vocabulary
+  - bible
+  source: english_learning_notes_2026-09-30.md
+- id: en-020
+  topic: Casual Expressions
+  question: What does “Give me a sec” mean, and when is it appropriate?
+  answer: |-
+    ## Short answer
+
+    It means **“Give me a second”** and is appropriate in casual conversation.
+
+    ## Detailed answer
+
+    **Sec** is an informal abbreviation of **second**:
+
+    - “Give me a sec.”
+    - “Wait a sec.”
+    - “Just a sec.”
+
+    More neutral alternatives are “Give me a second” and “Give me a moment.” Avoid very casual abbreviations in formal writing unless you are intentionally representing speech.
+  tags:
+  - vocabulary
+  - casual-english
+  source: english_learning_notes_2026-09-30.md
+- id: en-021
+  topic: Pronunciation
+  question: How are “nervous,” “nerves,” and “emotions” pronounced in American English?
+  answer: |-
+    ## Short answer
+
+    **nervous:** NUR-vuhs; **nerves:** NURVZ; **emotions:** ih-MOH-shuhnz.
+
+    ## Detailed answer
+
+    - **nervous** /ˈnɝːvəs/ — stress the first syllable.
+    - **nerves** /nɝːvz/ — finish with the voiced **/vz/** sound.
+    - **emotions** /ɪˈmoʊʃənz/ — stress the second syllable.
+
+    Practice the contrast:
+
+    - “I am **nervous**.”
+    - “I need to manage my **nerves**.”
+    - “I was trying to control my **emotions**.”
+  tags:
+  - pronunciation
+  - emotions
+  source: english_learning_notes_2026-09-30.md
+- id: en-022
+  topic: Pronunciation
+  question: What should you remember when pronouncing “talk,” “topic,” and “not”?
+  answer: |-
+    ## Short answer
+
+    Stress **TAH** in “topic,” keep the **l** silent in “talk,” and do not add a vowel after the final **t** in “not.”
+
+    ## Detailed answer
+
+    - **topic:** /ˈtɑːpɪk/, approximately **TAH-pik**.
+    - **talk:** /tɔːk/ or /tɑːk/, depending on accent; the **l** is silent and the final **k** should be clear.
+    - **not:** /nɑːt/ or /nɔːt/, depending on accent; finish cleanly without an extra vowel.
+
+    American accents differ. In cot-caught merged accents, the vowels may be close; in other accents, “talk” differs from “top” and “not.” Do not force all three to use an identical vowel.
+  tags:
+  - pronunciation
+  - american-english
+  source: english_learning_notes_2026-09-30.md
+- id: en-023
+  topic: Pronunciation
+  question: How are “realized,” “resilience,” and “environment” pronounced?
+  answer: |-
+    ## Short answer
+
+    **realized:** REE-uh-lized; **resilience:** ri-ZIL-yuhns; **environment:** en-VY-run-ment.
+
+    ## Detailed answer
+
+    - **realized** /ˈriːəlaɪzd/ — stress near the beginning.
+    - **resilience** /rɪˈzɪliəns/ — stress **ZIL**.
+    - **environment** — stress the second syllable: en-**VY**-run-ment.
+
+    Practice in complete phrases rather than as isolated words:
+
+    - “I **realized** I was too nervous.”
+    - “She showed a lot of **resilience**.”
+    - “I spent too much time preparing my **environment**.”
+  tags:
+  - pronunciation
+  - stress
+  source: english_learning_notes_2026-09-30.md; english_practice_notes_2026-10-01.md
+- id: en-024
+  topic: Connected Speech
+  question: How does consonant-to-vowel linking work in natural American speech?
+  answer: |-
+    ## Short answer
+
+    When one word ends in a consonant and the next begins with a vowel, connect them smoothly.
+
+    ## Detailed answer
+
+    Practice these as connected units:
+
+    - hold_on
+    - not_at_all
+    - get_up
+    - take_it
+    - turn_it_off
+
+    For “not at all,” practice in stages: **not**, then **not at**, then **not at all**. The goal is smooth connection and natural rhythm, not simply speaking faster.
+  tags:
+  - pronunciation
+  - linking
+  - fluency
+  source: english_learning_notes_2026-09-30.md
+- id: en-025
+  topic: Fluency Practice
+  question: Give a polished short version of the nervous-interview story.
+  answer: |-
+    ## Short answer
+
+    “I recently had an interview and was pretty nervous. My anxiety affected my performance, so I want to work on staying calm and trusting myself.”
+
+    ## Detailed answer
+
+    A longer natural version is:
+
+    > Recently, I had an interview, and I was much more nervous than I needed to be. My anxiety affected my performance. I realized that fear can limit my ability to think clearly and express what I know. If I could do it again, I would focus on positive self-talk, managing my anxiety, and trusting my abilities.
+
+    Practice by first reading slowly, then retelling the same idea without memorizing every word. Preserve the structure: event, problem, realization, and next step.
+  tags:
+  - fluency
+  - storytelling
+  - interview
+  source: english_learning_notes_2026-09-30.md
+- id: en-026
+  topic: Daily Routine
+  question: How can you naturally describe what you did after work?
+  answer: |-
+    ## Short answer
+
+    “After work, I went home, opened my laptop, worked on a flashcard application, had dinner, and went to sleep.”
+
+    ## Detailed answer
+
+    A fuller version is:
+
+    > After work, I went home, opened my laptop, and worked on an application that uses flashcards for vocabulary and C++ study. Then I had dinner and went to sleep.
+
+    This version uses a consistent past-tense sequence and natural everyday expressions. “Returned home” is grammatical but more formal than “went home” in ordinary conversation.
+  tags:
+  - fluency
+  - daily-routine
+  - past-tense
+  source: english_practice_notes_2026-10-01.md
+- id: en-027
+  topic: Articles and Applications
+  question: Why is “build application to handle flashcards” unnatural?
+  answer: |-
+    ## Short answer
+
+    Say **“build an application to manage flashcards.”** A singular countable noun needs an article, and “manage” is more natural here.
+
+    ## Detailed answer
+
+    Correct alternatives include:
+
+    - “I’m building **an application to manage flashcards**.”
+    - “The application lets me **create and review flashcards**.”
+    - “I built **a flashcard application**.”
+
+    **Handle** is possible in technical contexts, but it sounds vague for describing the user-facing purpose. **Use**, **manage**, **create**, and **review** communicate the exact action more naturally.
+  tags:
+  - articles
+  - natural-english
+  - software
+  source: english_practice_notes_2026-10-01.md
+- id: en-028
+  topic: Daily Routine
+  question: What is the difference between “had dinner,” “went to sleep,” and “slept”?
+  answer: |-
+    ## Short answer
+
+    Say **“had dinner”** for the meal and **“went to sleep”** for the moment sleep started; **slept** describes the sleeping period.
+
+    ## Detailed answer
+
+    - Incorrect: “I took my dinner.”
+    - Natural: “I had dinner” or “I ate dinner.”
+    - “I went to sleep at eleven” describes when sleep began.
+    - “I slept for eight hours” describes duration.
+
+    Use **cooked dinner** only when you mean that you prepared the meal.
+  tags:
+  - natural-english
+  - daily-routine
+  source: english_practice_notes_2026-10-01.md
+- id: en-029
+  topic: Technical English
+  question: How can you naturally describe a device with insufficient capability?
+  answer: |-
+    ## Short answer
+
+    Say **“The device was too limited”** or **“It didn’t have enough computing power.”**
+
+    ## Detailed answer
+
+    Useful choices:
+
+    - “The Raspberry Pi was too limited.”
+    - “It was a low-powered device.”
+    - “It didn’t have enough computing power for the application.”
+
+    **Low-end** is understandable and common when describing a product category, but **too limited** or **not powerful enough** directly explains why it could not meet your requirement.
+  tags:
+  - technical-english
+  - vocabulary
+  source: english_practice_notes_2026-10-01.md
+- id: en-030
+  topic: Storytelling Patterns
+  question: How do you explain that a problem forced you to change a plan?
+  answer: |-
+    ## Short answer
+
+    Use **“I had planned to…, but…, so I had to…”**
+
+    ## Detailed answer
+
+    Example:
+
+    > I had planned to deploy the application on a Raspberry Pi, but the device was too limited, so I had to find another solution.
+
+    This structure clearly presents:
+
+    1. the original plan,
+    2. the obstacle,
+    3. the necessary response.
+
+    Other examples:
+
+    - “I missed the bus, so I had to take an Uber.”
+    - “The library was closed, so I had to study at home.”
+  tags:
+  - fluency
+  - storytelling
+  - grammar
+  source: english_practice_notes_2026-10-01.md
+- id: en-031
+  topic: Technical English
+  question: What do “run locally” and “deploy an application” mean?
+  answer: |-
+    ## Short answer
+
+    **Run locally** means run on your own machine; **deploy** means make the application available in its intended environment.
+
+    ## Detailed answer
+
+    Examples:
+
+    - “For now, I’m running the application locally on my laptop.”
+    - “Eventually, I want to deploy it to a server.”
+
+    A natural combined statement is:
+
+    > I’d prefer to deploy the application somewhere, but running it locally is fine for studying.
+
+    Deployment may include installing dependencies, configuring the environment, starting the service, and making it accessible to its users.
+  tags:
+  - technical-english
+  - software
+  - vocabulary
+  source: english_practice_notes_2026-10-01.md
+- id: en-032
+  topic: Goals and Study
+  question: 'Which is correct: “The next step is building” or “The next step is to build”?'
+  answer: |-
+    ## Short answer
+
+    Both are correct: **“The next step is building…”** and **“The next step is to build…”**
+
+    ## Detailed answer
+
+    Examples:
+
+    - “The next step is **building more flashcards**.”
+    - “The next step is **to build more flashcards**.”
+
+    The infinitive form often sounds especially clear when naming a planned action. Do not add an article before the gerund:
+
+    - Incorrect: “The next step is the building more flashcards.”
+    - Correct: “The next step is building more flashcards.”
+  tags:
+  - grammar
+  - goals
+  - gerunds
+  - infinitives
+  source: english_practice_notes_2026-10-01.md
+- id: en-033
+  topic: Goals and Study
+  question: How do you naturally say that you want to use your time effectively?
+  answer: |-
+    ## Short answer
+
+    Say **“I want to use my time better”** or **“I want to make the most of my time.”**
+
+    ## Detailed answer
+
+    Natural expressions:
+
+    - “I want to use my time **well**.”
+    - “I want to use my time **better**.”
+    - “I want to **make the best use of my time**.”
+    - “I want to **make the most of my time**.”
+
+    **Good** is an adjective; **well** is normally the adverb modifying the verb **use**. “Use my time better” is often the most conversational choice.
+  tags:
+  - natural-english
+  - adverbs
+  - goals
+  source: english_practice_notes_2026-10-01.md
+- id: en-034
+  topic: Skills and Confidence
+  question: What is the difference between being “familiar with” and “comfortable with” a skill?
+  answer: |-
+    ## Short answer
+
+    **Familiar with** means you know or recognize it; **comfortable with** means you can use it confidently.
+
+    ## Detailed answer
+
+    Compare:
+
+    - “I’m familiar with C++ syntax.”
+    - “I’m comfortable writing C++ classes.”
+
+    A natural goal statement is:
+
+    > My goal is to become comfortable with modern C++, especially writing classes and larger programs.
+
+    “Become comfortable” describes progress toward confident practical use, while “become familiar” describes gaining basic knowledge or recognition.
+  tags:
+  - vocabulary
+  - skills
+  - confidence
+  source: english_practice_notes_2026-10-01.md
+- id: en-035
+  topic: English Learning Goals
+  question: How do you naturally describe improving spoken English and vocabulary?
+  answer: |-
+    ## Short answer
+
+    “I want to speak English more naturally and build my vocabulary.”
+
+    ## Detailed answer
+
+    Natural alternatives:
+
+    - “I want to **sound more natural when I speak English**.”
+    - “I want to **expand my vocabulary**.”
+    - “My goal is to **speak English more naturally**.”
+
+    Avoid “gain more vocabulary” and “be more natural in English speaking.” **Build/expand my vocabulary** and **sound more natural** are established expressions.
+  tags:
+  - natural-english
+  - goals
+  - vocabulary
+  source: english_practice_notes_2026-10-01.md
+- id: en-036
+  topic: Personality Vocabulary
+  question: What do “stubborn” and “flexible” mean, and are they opposites?
+  answer: |-
+    ## Short answer
+
+    **Stubborn** means unwilling to change; **flexible** means willing or able to adapt. They contrast, but are not perfect opposites in every context.
+
+    ## Detailed answer
+
+    Examples:
+
+    - “He is too stubborn to admit that he was wrong.”
+    - “She is flexible and willing to change the plan.”
+    - “He is stubborn, but she is flexible.”
+
+    **Flexible** can also describe schedules, rules, materials, or arrangements, while **stubborn** usually describes a person, behavior, problem, or condition that resists change.
+  tags:
+  - vocabulary
+  - personality
+  source: english_practice_notes_2026-10-01.md
+- id: en-037
+  topic: Learning and Memory
+  question: How can you naturally explain why you need flashcards?
+  answer: |-
+    ## Short answer
+
+    “I need flashcards so I can regularly review what I’ve learned and avoid forgetting it.”
+
+    ## Detailed answer
+
+    Another natural version is:
+
+    > Flashcards help me remember what I learn instead of forgetting it after a few days.
+
+    The compact phrase **review what I’ve learned** replaces a longer, repetitive explanation about remembering today’s, last week’s, and earlier material. The present perfect **I’ve learned** connects past learning with your current knowledge.
+  tags:
+  - fluency
+  - learning
+  - present-perfect
+  source: english_practice_notes_2026-10-01.md
+- id: en-038
+  topic: Goals and Study
+  question: Why are small, concrete study goals useful for both motivation and fluent speech?
+  answer: |-
+    ## Short answer
+
+    Small goals are easy to start and easy to express clearly: **“I’ll review five flashcards.”**
+
+    ## Detailed answer
+
+    Compare:
+
+    - Large: “I need to study C++.”
+    - Smaller: “I’ll study for ten minutes.”
+    - Concrete starting action: “I’ll review five flashcards.”
+
+    A natural plan is:
+
+    > When I get to work, I’ll review five C++ flashcards and five English flashcards, and then I’ll start my workday.
+
+    A concrete sentence removes vague planning and makes the next action observable.
+  tags:
+  - goals
+  - motivation
+  - fluency
+  source: english_practice_notes_2026-10-01.md
+- id: en-039
+  topic: Motivation
+  question: What is the natural way to ask “How to motivate myself generally?”
+  answer: |-
+    ## Short answer
+
+    Ask **“How can I motivate myself in general?”** or **“How can I stay motivated?”**
+
+    ## Detailed answer
+
+    **Motivate myself** focuses on creating motivation:
+
+    - “How can I motivate myself to exercise?”
+
+    **Stay motivated** focuses on maintaining motivation:
+
+    - “How can I stay motivated while learning C++?”
+
+    English questions normally need an auxiliary/modal before the subject: **How can I…?**, not simply **How to I…?**
+  tags:
+  - grammar
+  - motivation
+  - questions
+  source: english_practice_notes_2026-10-01.md
+- id: en-040
+  topic: Generally and In General
+  question: What is the difference between “generally” and “in general”?
+  answer: |-
+    ## Short answer
+
+    **Generally** often means “usually”; **in general** means “broadly speaking” or “overall.”
+
+    ## Detailed answer
+
+    Use **generally** for habits and normal patterns:
+
+    - “I generally study after lunch.”
+    - “I generally wake up around 6:30.”
+
+    Use **in general** for a broad statement or summary:
+
+    - “In general, smaller goals are easier to maintain.”
+    - “In general, exercise is good for your health.”
+
+    They can overlap in broad statements, but **generally** is usually more natural when you specifically mean a repeated personal habit.
+
+    ```mermaid
+    flowchart TD
+        A[Choose the expression] --> B{Meaning}
+        B -->|Usually or normal habit| C[generally]
+        B -->|Broadly speaking or overall| D[in general]
+        B -->|Broad general statement| E[Either may work]
+    ```
+  tags:
+  - grammar
+  - adverbs
+  - fluency
+  source: english_practice_notes_2026-10-01.md
+- id: en-041
+  topic: Verb Patterns
+  question: What verb form follows “want to”?
+  answer: |-
+    ## Short answer
+
+    Use **want to + base verb**: “I want to study.”
+
+    ## Detailed answer
+
+    Correct examples:
+
+    - “I want to study C++.”
+    - “I want to build my vocabulary.”
+    - “I want to speak more naturally.”
+
+    Incorrect: “I want to studying.” The **to** here is part of the infinitive and is followed by the base form, not the **-ing** form.
+  tags:
+  - grammar
+  - verb-patterns
+  source: english_practice_notes_2026-10-01.md
+- id: en-042
+  topic: Verb Patterns
+  question: What form follows “spend time” and “instead of”?
+  answer: |-
+    ## Short answer
+
+    Use **spend time + -ing** and **instead of + noun/-ing**.
+
+    ## Detailed answer
+
+    Examples:
+
+    - “I spend too much time **setting up** tools.”
+    - “I spent an hour **studying**.”
+    - “I was building tools **instead of studying**.”
+    - “I used my laptop **instead of the Raspberry Pi**.”
+
+    “Spend time to study” is not the normal pattern when describing how the time was used. Use “spend time studying.”
+  tags:
+  - grammar
+  - gerunds
+  - verb-patterns
+  source: english_practice_notes_2026-10-01.md
+- id: en-043
+  topic: Verb Patterns
+  question: What can follow “comfortable with”?
+  answer: |-
+    ## Short answer
+
+    Use **comfortable with + noun/-ing**.
+
+    ## Detailed answer
+
+    Examples:
+
+    - “I’m comfortable **with C++**.”
+    - “I’m comfortable **writing C++**.”
+    - “I’m not yet comfortable **speaking in interviews**.”
+
+    You can also use an infinitive after the adjective without **with** in some contexts: “I’m comfortable speaking,” but “comfortable to speaking” is incorrect.
+  tags:
+  - grammar
+  - verb-patterns
+  - confidence
+  source: english_practice_notes_2026-10-01.md
+- id: en-044
+  topic: Modal and Semi-Modal Patterns
+  question: What verb form follows “had to”?
+  answer: |-
+    ## Short answer
+
+    Use **had to + base verb**: “I had to find another way.”
+
+    ## Detailed answer
+
+    Examples:
+
+    - “I had to find another solution.”
+    - “I had to run the application locally.”
+    - “I had to change my plan.”
+
+    **Had to** is the past form used for necessity or obligation. Do not add another past ending to the following verb: “had to found” is incorrect; use “had to find.”
+  tags:
+  - grammar
+  - verb-patterns
+  - past-tense
+  source: english_practice_notes_2026-10-01.md
+- id: en-045
+  topic: Fluency
+  question: What does it mean to compress an idea for more fluent speech?
+  answer: |-
+    ## Short answer
+
+    Keep the main meaning, remove repetition, choose one strong phrase, and finish the sentence clearly.
+
+    ## Detailed answer
+
+    Wordy version:
+
+    > Sometimes I spend a lot of time preparing the environment and consuming a lot of time building tools instead of spending this time in the study itself.
+
+    Compressed version:
+
+    > Sometimes I spend too much time setting things up instead of actually studying.
+
+    A practical process is:
+
+    1. Identify the main idea.
+    2. Remove repeated explanations.
+    3. Replace several weak words with one strong verb or phrase.
+    4. Stop when the idea is complete.
+
+    Fluency is not only speaking faster; it is organizing the message so the listener can follow it easily.
+  tags:
+  - fluency
+  - natural-english
+  - speaking
+  source: english_practice_notes_2026-10-01.md
+- id: en-046
+  topic: Fluency Practice
+  question: Give a polished summary of the flashcard application and study plan.
+  answer: |-
+    ## Short answer
+
+    “I built a flashcard application for English and C++. For now, I’m running it locally, and my plan is to review a few cards before work each day.”
+
+    ## Detailed answer
+
+    A fuller natural version is:
+
+    > After work, I went home and worked on a flashcard application for studying English vocabulary and C++. I originally planned to deploy it on a Raspberry Pi, but the device was too limited, so for now I’m running it locally on my laptop. I sometimes spend too much time building tools instead of actually studying, so I want to keep my study goals small. My plan is to review five C++ flashcards and five English flashcards before I start work. My main goals are to become more comfortable with modern C++, speak English more naturally, and build my vocabulary.
+
+    Practice retelling the same story in 20 seconds, 45 seconds, and 90 seconds. This builds the ability to adjust detail without losing the main structure.
+  tags:
+  - fluency
+  - storytelling
+  - goals
+  source: english_practice_notes_2026-10-01.md
+assets: {}
+study_progress:
+  card_states:
+    en-001:
+      introduced_at: '2026-10-01T18:44:14.028422+00:00'
+      last_review: '2026-10-01T18:44:35.718884+00:00'
+      due: '2026-10-01T18:54:35.718884+00:00'
+      fsrs:
+        card_id: 8686932445794267642
+        state: 1
+        step: 1
+        stability: 2.3065
+        difficulty: 2.118103970459016
+        due: '2026-10-01T18:54:35.718884+00:00'
+        last_review: '2026-10-01T18:44:35.718884+00:00'
+    en-002:
+      introduced_at: '2026-10-01T18:44:35.892821+00:00'
+      last_review: '2026-10-01T18:44:57.622243+00:00'
+      due: '2026-10-01T18:54:57.622243+00:00'
+      fsrs:
+        card_id: 8148993273104562933
+        state: 1
+        step: 1
+        stability: 2.3065
+        difficulty: 2.118103970459016
+        due: '2026-10-01T18:54:57.622243+00:00'
+        last_review: '2026-10-01T18:44:57.622243+00:00'
+    en-003:
+      introduced_at: '2026-10-01T18:44:57.798003+00:00'
+      last_review: '2026-10-01T18:47:16.323549+00:00'
+      due: '2026-10-01T18:57:16.323549+00:00'
+      fsrs:
+        card_id: 4079348346719263671
+        state: 1
+        step: 1
+        stability: 2.3065
+        difficulty: 2.118103970459016
+        due: '2026-10-01T18:57:16.323549+00:00'
+        last_review: '2026-10-01T18:47:16.323549+00:00'
+    en-004:
+      introduced_at: '2026-10-01T18:47:16.506490+00:00'
+      last_review: '2026-10-01T18:47:34.783594+00:00'
+      due: '2026-10-01T18:57:34.783594+00:00'
+      fsrs:
+        card_id: 1354448703681434551
+        state: 1
+        step: 1
+        stability: 2.3065
+        difficulty: 2.118103970459016
+        due: '2026-10-01T18:57:34.783594+00:00'
+        last_review: '2026-10-01T18:47:34.783594+00:00'
+    en-005:
+      introduced_at: '2026-10-01T18:47:34.967423+00:00'
+      last_review: '2026-10-01T18:48:12.718834+00:00'
+      due: '2026-10-01T18:58:12.718834+00:00'
+      fsrs:
+        card_id: 649787722078657325
+        state: 1
+        step: 1
+        stability: 2.3065
+        difficulty: 2.118103970459016
+        due: '2026-10-01T18:58:12.718834+00:00'
+        last_review: '2026-10-01T18:48:12.718834+00:00'
+    en-006:
+      introduced_at: '2026-10-01T18:48:12.948169+00:00'
+      last_review: '2026-10-01T18:56:32.535693+00:00'
+      due: '2026-10-01T19:06:32.535693+00:00'
+      fsrs:
+        card_id: 8192381929768977197
+        state: 1
+        step: 1
+        stability: 1.3358997622047517
+        difficulty: 5.102286904192293
+        due: '2026-10-01T19:06:32.535693+00:00'
+        last_review: '2026-10-01T18:56:32.535693+00:00'
+    en-007:
+      introduced_at: '2026-10-01T18:48:37.928653+00:00'
+      last_review: '2026-10-01T18:48:51.334871+00:00'
+      due: '2026-10-09T18:48:51.334871+00:00'
+      fsrs:
+        card_id: 6199277101334110042
+        state: 2
+        step: null
+        stability: 8.2956
+        difficulty: 1.0
+        due: '2026-10-09T18:48:51.334871+00:00'
+        last_review: '2026-10-01T18:48:51.334871+00:00'
+    en-008:
+      introduced_at: '2026-10-01T18:48:51.534102+00:00'
+      last_review: '2026-10-01T18:55:10.890377+00:00'
+      due: '2026-10-01T18:56:10.890377+00:00'
+      fsrs:
+        card_id: 2934342297844661222
+        state: 1
+        step: 0
+        stability: 0.212
+        difficulty: 6.4133
+        due: '2026-10-01T18:56:10.890377+00:00'
+        last_review: '2026-10-01T18:55:10.890377+00:00'
+  reviews:
+  - card_id: en-001
+    reviewed_at: '2026-10-01T18:44:35.718884+00:00'
+    rating: Good
+    scheduled_due: '2026-10-01T18:54:35.718884+00:00'
+    duration_ms: 21641
+    fsrs_log:
+      card_id: 8686932445794267642
+      rating: 3
+      review_datetime: '2026-10-01T18:44:35.718884+00:00'
+      review_duration: 21641
+  - card_id: en-002
+    reviewed_at: '2026-10-01T18:44:57.622243+00:00'
+    rating: Good
+    scheduled_due: '2026-10-01T18:54:57.622243+00:00'
+    duration_ms: 21686
+    fsrs_log:
+      card_id: 8148993273104562933
+      rating: 3
+      review_datetime: '2026-10-01T18:44:57.622243+00:00'
+      review_duration: 21686
+  - card_id: en-003
+    reviewed_at: '2026-10-01T18:47:16.323549+00:00'
+    rating: Good
+    scheduled_due: '2026-10-01T18:57:16.323549+00:00'
+    duration_ms: 138469
+    fsrs_log:
+      card_id: 4079348346719263671
+      rating: 3
+      review_datetime: '2026-10-01T18:47:16.323549+00:00'
+      review_duration: 138469
+  - card_id: en-004
+    reviewed_at: '2026-10-01T18:47:34.783594+00:00'
+    rating: Good
+    scheduled_due: '2026-10-01T18:57:34.783594+00:00'
+    duration_ms: 18218
+    fsrs_log:
+      card_id: 1354448703681434551
+      rating: 3
+      review_datetime: '2026-10-01T18:47:34.783594+00:00'
+      review_duration: 18218
+  - card_id: en-005
+    reviewed_at: '2026-10-01T18:48:12.718834+00:00'
+    rating: Good
+    scheduled_due: '2026-10-01T18:58:12.718834+00:00'
+    duration_ms: 37688
+    fsrs_log:
+      card_id: 649787722078657325
+      rating: 3
+      review_datetime: '2026-10-01T18:48:12.718834+00:00'
+      review_duration: 37688
+  - card_id: en-006
+    reviewed_at: '2026-10-01T18:48:37.735176+00:00'
+    rating: Hard
+    scheduled_due: '2026-10-01T18:54:07.735176+00:00'
+    duration_ms: 24702
+    fsrs_log:
+      card_id: 8192381929768977197
+      rating: 2
+      review_datetime: '2026-10-01T18:48:37.735176+00:00'
+      review_duration: 24702
+  - card_id: en-007
+    reviewed_at: '2026-10-01T18:48:51.334871+00:00'
+    rating: Easy
+    scheduled_due: '2026-10-09T18:48:51.334871+00:00'
+    duration_ms: 13360
+    fsrs_log:
+      card_id: 6199277101334110042
+      rating: 4
+      review_datetime: '2026-10-01T18:48:51.334871+00:00'
+      review_duration: 13360
+  - card_id: en-008
+    reviewed_at: '2026-10-01T18:55:10.890377+00:00'
+    rating: Again
+    scheduled_due: '2026-10-01T18:56:10.890377+00:00'
+    duration_ms: 43032
+    fsrs_log:
+      card_id: 2934342297844661222
+      rating: 1
+      review_datetime: '2026-10-01T18:55:10.890377+00:00'
+      review_duration: 43032
+  - card_id: en-006
+    reviewed_at: '2026-10-01T18:56:32.535693+00:00'
+    rating: Good
+    scheduled_due: '2026-10-01T19:06:32.535693+00:00'
+    duration_ms: 81452
+    fsrs_log:
+      card_id: 8192381929768977197
+      rating: 3
+      review_datetime: '2026-10-01T18:56:32.535693+00:00'
+      review_duration: 81452

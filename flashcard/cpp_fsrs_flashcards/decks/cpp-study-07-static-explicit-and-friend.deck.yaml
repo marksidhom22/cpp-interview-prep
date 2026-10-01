@@ -12,97 +12,631 @@ cards:
   topic: '`static`, `explicit`, and `friend`'
   question: What three separate concepts are often confused around `static`?
   answer: |-
+    ## Short answer
+
     Storage duration answers how long storage exists; scope answers where a name is visible; linkage answers whether declarations in different places name the same entity.
 
-    **More detail:** These are independent properties: a name can have local scope while referring to storage that persists for the entire program.
+    ## Detailed answer
+
+    The meaning of `static` depends on where it appears.
+
+    | Context | Main effect |
+    |---|---|
+    | Local variable | Static storage duration, block scope |
+    | Class data member | One shared member associated with the class |
+    | Class member function | No implicit object/`this` |
+    | Namespace-scope name | Internal linkage |
+    | Function declaration at namespace scope | Function visible only within translation unit |
+
+    These meanings are related historically but should be reasoned about separately.
+
+    ### Storage duration, scope, and linkage
+
+    - **Storage duration** answers when storage exists.
+    - **Scope** answers where a name can be used.
+    - **Linkage** answers whether declarations in different scopes/translation units name the same entity.
+
+    A local static demonstrates why these are distinct: its name has block scope, but the object exists for the program's duration.
   source: 07_static_explicit_friend.md
 - id: '07.2'
   topic: '`static`, `explicit`, and `friend`'
   question: What does a function-local static mean?
   answer: |-
+    ## Short answer
+
     It has block scope, is initialized once when control first reaches the declaration, and has static storage duration, so it persists across calls.
 
-    **More detail:** Its initialization occurs on the first pass through the declaration, and the initialized object remains alive until program termination.
+    ## Detailed answer
+
+    ```cpp
+    int next_id() {
+        static int id{};
+        return ++id;
+    }
+    ```
+
+    `id`:
+
+    - Is initialized once, when control first reaches the declaration.
+    - Retains its value across calls.
+    - Has block scope.
+    - Has static storage duration.
+    - Is destroyed during program termination if it has non-trivial destruction.
+
+    ### Initialization timing
+
+    ```cpp
+    Configuration& configuration() {
+        static Configuration config = load_configuration();
+        return config;
+    }
+    ```
+
+    Initialization happens on first call, not necessarily at program startup. This is the construct-on-first-use idiom.
+
+    Since C++11, if multiple threads race to initialize the same function-local static, initialization occurs exactly once. Other threads wait.
+
+    ### Later access still needs synchronization
+
+    ```cpp
+    void increment() {
+        static int count{};
+        ++count; // data race if called concurrently without synchronization
+    }
+    ```
+
+    Only initialization is protected. The object does not become atomic or thread-safe.
+
+    ### Recursive initialization
+
+    If initialization recursively re-enters the same declaration before completion, behavior is problematic/undefined under the relevant rules. Avoid initialization dependencies that call back into themselves.
+
+    ### Costs
+
+    Implementations may use a guard check on each entry. It is often tiny and optimized, but real-time code should measure and review it.
   source: 07_static_explicit_friend.md
 - id: '07.3'
   topic: '`static`, `explicit`, and `friend`'
   question: Is function-local static initialization thread-safe?
   answer: |-
+    ## Short answer
+
     Since C++11, initialization is thread-safe. Later reads and writes to the object are not automatically synchronized.
 
-    **More detail:** The guarantee covers one-time initialization only; concurrent mutation of the initialized object still needs synchronization.
+    ## Detailed answer
+
+    Objects with static storage duration undergo:
+
+    1. Static initialization, including zero initialization and constant initialization where possible.
+    2. Dynamic initialization when required.
+
+    ### Cross-translation-unit order problem
+
+    ```cpp
+    // a.cpp
+    Logger logger{configuration()};
+
+    // b.cpp
+    Configuration global_configuration{load()};
+    ```
+
+    The dynamic initialization order of non-local objects across translation units can be unspecified or only partially ordered. `logger` may access configuration before it is dynamically initialized.
+
+    ### Construct on first use
+
+    ```cpp
+    Configuration& configuration() {
+        static Configuration value = load();
+        return value;
+    }
+    ```
+
+    This delays construction until first use and gives a clear dependency at the call site.
+
+    ### Destruction order
+
+    Function-local statics are destroyed in reverse order of completed initialization within the relevant rules. Dependencies during program shutdown can still fail if one static uses another that has already been destroyed.
+
+    Some process-lifetime services are intentionally never destroyed, but leaking by design needs documentation and may be unacceptable for test isolation or analysis tools.
+
+    ### Embedded implications
+
+    Static initialization can:
+
+    - Increase startup time before `main`.
+    - Access hardware before clocks/peripherals are ready.
+    - Consume RAM for the program's entire execution.
+    - Introduce hidden guards or locking.
+    - Create initialization-order dependencies.
+
+    Explicit platform startup sequencing is often clearer in firmware.
   source: 07_static_explicit_friend.md
 - id: '07.4'
   topic: '`static`, `explicit`, and `friend`'
   question: What is a static data member?
   answer: |-
+    ## Short answer
+
     One class-associated object shared by all instances rather than a separate member inside each instance.
 
-    **More detail:** A static data member is not stored separately inside each object, so changing it affects the shared class-level state.
+    ## Detailed answer
+
+    ```cpp
+    class Device {
+    public:
+        static std::size_t count;
+
+        Device() {
+            ++count;
+        }
+
+        ~Device() {
+            --count;
+        }
+    };
+
+    std::size_t Device::count = 0;
+    ```
+
+    There is one `count` associated with the class, not one per `Device`.
+
+    Access it as:
+
+    ```cpp
+    Device::count
+    ```
+
+    Access through an object is permitted but less clear:
+
+    ```cpp
+    device.count
+    ```
+
+    ### Definition requirements
+
+    Traditional static data members need one out-of-class definition in a source file:
+
+    ```cpp
+    std::size_t Device::count = 0;
+    ```
+
+    C++17 inline variables allow definition in the class/header:
+
+    ```cpp
+    class Device {
+    public:
+        inline static std::size_t count{};
+    };
+    ```
+
+    `inline` here permits identical definitions across translation units while referring to one entity.
+
+    ### `constexpr` static members
+
+    ```cpp
+    class Protocol {
+    public:
+        inline static constexpr std::uint32_t magic = 0xCAFEu;
+    };
+    ```
+
+    Modern inline constexpr members are convenient compile-time class constants.
+
+    ### Object-count caveats
+
+    A manual counter must consider:
+
+    - Copies and moves.
+    - Construction exceptions.
+    - Destruction order.
+    - Concurrency.
+    - Whether derived objects count.
+    - Static objects during startup/shutdown.
+
+    Use `std::atomic<std::size_t>` if concurrent increments must be safe.
   source: 07_static_explicit_friend.md
 - id: '07.5'
   topic: '`static`, `explicit`, and `friend`'
   question: What restriction does a static member function have?
   answer: |-
+    ## Short answer
+
     It has no implicit object and no `this` pointer, so it directly accesses only static members unless given an object explicitly.
 
-    **More detail:** A static function can be called without an instance, but it needs an object parameter to access non-static state.
+    ## Detailed answer
+
+    ```cpp
+    class Device {
+    public:
+        static std::size_t active_count() {
+            return count_;
+        }
+
+    private:
+        inline static std::size_t count_{};
+    };
+    ```
+
+    A static member function:
+
+    - Has no implicit object parameter.
+    - Has no `this` pointer.
+    - Can be called as `Device::active_count()`.
+    - Directly accesses static class members.
+    - Can access ordinary members only through an explicit object.
+
+    ```cpp
+    static int read_id(const Device& device) {
+        return device.id_;
+    }
+    ```
+
+    Because it is a class member, it still has access to private members when given an object.
+
+    ### Cannot be const or virtual
+
+    Trailing const qualifies `this`, but a static member has no `this`:
+
+    ```cpp
+    // static int count() const; // invalid
+    ```
+
+    Virtual dispatch also requires an object, so static members cannot be virtual.
+
+    ### Use cases
+
+    - Factory functions.
+    - Class-wide queries.
+    - Utilities tightly associated with the class's private representation.
+    - Callbacks requiring plain function-pointer compatibility, if the signature and ABI match.
+
+    Do not use a static member merely as a namespace substitute when no class-private access or semantic association exists.
   source: 07_static_explicit_friend.md
 - id: '07.6'
   topic: '`static`, `explicit`, and `friend`'
   question: What does namespace-scope `static` mean?
   answer: |-
+    ## Short answer
+
     It gives the declared name internal linkage, restricting it to the translation unit. An unnamed namespace is generally the more idiomatic C++ choice.
 
-    **More detail:** Internal linkage prevents other translation units from naming that entity; unnamed namespaces are the common C++ alternative.
+    ## Detailed answer
+
+    ```cpp
+    // device.cpp
+    static void reset_hardware() {
+    }
+    ```
+
+    At namespace scope, `static` gives `reset_hardware` internal linkage. Other translation units cannot refer to that entity by an external declaration.
+
+    Modern C++ often prefers an unnamed namespace:
+
+    ```cpp
+    namespace {
+        void reset_hardware() {
+        }
+
+        class Helper {};
+    }
+    ```
+
+    An unnamed namespace works naturally for functions, variables, and types.
+
+    ### Do not confuse with static storage duration
+
+    A namespace-scope object already has static storage duration even without `static`:
+
+    ```cpp
+    int global_counter;        // static storage duration, external linkage
+    static int local_counter;  // static storage duration, internal linkage
+    ```
+
+    Here `static` changes linkage, not lifetime.
+
+    ### Header caution
+
+    A namespace-scope internal-linkage variable in a header may create one copy per translation unit. Use `inline` variables or other appropriate patterns when one program-wide entity is required.
   source: 07_static_explicit_friend.md
 - id: '07.7'
   topic: '`static`, `explicit`, and `friend`'
   question: What problem does construct-on-first-use address?
   answer: |-
+    ## Short answer
+
     A function-local static delays construction until first use, helping avoid cross-translation-unit static initialization-order problems.
 
-    **More detail:** The object is initialized when first requested rather than during cross-file static initialization, reducing initialization-order hazards.
+    ## Detailed answer
+
+    Objects with static storage duration undergo:
+
+    1. Static initialization, including zero initialization and constant initialization where possible.
+    2. Dynamic initialization when required.
+
+    ### Cross-translation-unit order problem
+
+    ```cpp
+    // a.cpp
+    Logger logger{configuration()};
+
+    // b.cpp
+    Configuration global_configuration{load()};
+    ```
+
+    The dynamic initialization order of non-local objects across translation units can be unspecified or only partially ordered. `logger` may access configuration before it is dynamically initialized.
+
+    ### Construct on first use
+
+    ```cpp
+    Configuration& configuration() {
+        static Configuration value = load();
+        return value;
+    }
+    ```
+
+    This delays construction until first use and gives a clear dependency at the call site.
+
+    ### Destruction order
+
+    Function-local statics are destroyed in reverse order of completed initialization within the relevant rules. Dependencies during program shutdown can still fail if one static uses another that has already been destroyed.
+
+    Some process-lifetime services are intentionally never destroyed, but leaking by design needs documentation and may be unacceptable for test isolation or analysis tools.
+
+    ### Embedded implications
+
+    Static initialization can:
+
+    - Increase startup time before `main`.
+    - Access hardware before clocks/peripherals are ready.
+    - Consume RAM for the program's entire execution.
+    - Introduce hidden guards or locking.
+    - Create initialization-order dependencies.
+
+    Explicit platform startup sequencing is often clearer in firmware.
   source: 07_static_explicit_friend.md
 - id: '07.8'
   topic: '`static`, `explicit`, and `friend`'
   question: What does `explicit` prevent?
   answer: |-
+    ## Short answer
+
     It prevents the constructor or conversion operator from participating in unintended implicit conversions while still allowing appropriate direct or explicit use.
 
-    **More detail:** Explicit conversions remain available at the call site, so intentional conversion is possible without silently changing overload selection.
+    ## Detailed answer
+
+    A constructor that can be called with one argument may define a conversion:
+
+    ```cpp
+    class Temperature {
+    public:
+        Temperature(double celsius)
+            : celsius_{celsius} {}
+
+    private:
+        double celsius_;
+    };
+
+    void log(Temperature temperature);
+
+    log(25.0); // implicit conversion
+    ```
+
+    This conversion may be natural, but it also lets unrelated overloads accept values unexpectedly.
+
+    Mark it explicit:
+
+    ```cpp
+    explicit Temperature(double celsius);
+    ```
+
+    Now:
+
+    ```cpp
+    log(Temperature{25.0});
+    // log(25.0); // rejected
+    ```
+
+    ### More than one declared parameter
+
+    This can still be a converting constructor:
+
+    ```cpp
+    explicit Range(int low, int high = 100);
+    ```
+
+    Only one argument is required at the call site.
+
+    ### Multi-argument list conversion
+
+    Modern C++ also permits list-based conversions involving constructors with multiple arguments in some contexts:
+
+    ```cpp
+    void draw(Point point);
+    // draw({1, 2}); // allowed if Point(int, int) is not explicit
+    ```
   source: 07_static_explicit_friend.md
 - id: '07.9'
   topic: '`static`, `explicit`, and `friend`'
   question: Does `explicit` reject direct initialization?
   answer: |-
+    ## Short answer
+
     No. `Type x{arg};` may call an explicit constructor; copy-initialization such as `Type x = arg;` may not use it as an implicit conversion.
 
-    **More detail:** Direct-list and direct initialization can use an explicit constructor; copy-initialization cannot use it as an implicit conversion.
+    ## Detailed answer
+
+    ```cpp
+    class DeviceId {
+    public:
+        explicit DeviceId(int value);
+    };
+    ```
+
+    Allowed:
+
+    ```cpp
+    DeviceId a(42);
+    DeviceId b{42};
+    auto c = DeviceId{42};
+    ```
+
+    Rejected:
+
+    ```cpp
+    // DeviceId d = 42;
+    ```
+
+    Copy-initialization considers conversion differently and cannot use an explicit constructor as an implicit conversion.
+
+    ### Function calls
+
+    ```cpp
+    void connect(DeviceId id);
+
+    // connect(42);             // rejected
+    connect(DeviceId{42});      // valid
+    ```
+
+    ### Return statements
+
+    ```cpp
+    DeviceId make_id() {
+        return DeviceId{42};
+    }
+    ```
+
+    A bare `return 42;` would require an implicit conversion and is rejected when the constructor is explicit.
   source: 07_static_explicit_friend.md
 - id: '07.10'
   topic: '`static`, `explicit`, and `friend`'
   question: What is a friend function?
   answer: |-
+    ## Short answer
+
     A non-member function granted access to a class’s private and protected members.
 
-    **More detail:** Friendship grants access but does not make the function a member; it still has ordinary non-member calling and overload behavior.
+    ## Detailed answer
+
+    ```cpp
+    class Box {
+    public:
+        explicit Box(int value) : value_{value} {}
+
+        friend bool same_value(const Box& left, const Box& right);
+
+    private:
+        int value_;
+    };
+
+    bool same_value(const Box& left, const Box& right) {
+        return left.value_ == right.value_;
+    }
+    ```
+
+    `same_value` is not a member:
+
+    ```cpp
+    same_value(a, b);
+    // a.same_value(b); // not implied
+    ```
+
+    It receives access permission to `Box`'s private and protected members.
+
+    ### Declaration and definition
+
+    A friend can be declared inside and defined outside, or defined inline inside the class:
+
+    ```cpp
+    class Box {
+        friend bool operator==(const Box& a, const Box& b) {
+            return a.value_ == b.value_;
+        }
+
+        int value_{};
+    };
+    ```
+
+    The inline definition is a non-member function.
   source: 07_static_explicit_friend.md
 - id: '07.11'
   topic: '`static`, `explicit`, and `friend`'
   question: Is friendship inherited, transitive, or reciprocal?
   answer: |-
+    ## Short answer
+
     No. Each friendship grant is explicit and limited to the named friend.
 
-    **More detail:** If another class needs access, it must receive its own explicit friendship grant from the class that owns the private data.
+    ## Detailed answer
+
+    Friendship is:
+
+    - **Not reciprocal:** if `A` befriends `B`, `A` does not automatically access `B`.
+    - **Not transitive:** a friend of a friend gains nothing.
+    - **Not inherited:** friends of a base are not automatically friends of derived-private state, and friends of a derived class do not automatically access base-private state beyond normal rules.
+    - **Explicit:** the granting class controls access.
+
+    ```cpp
+    class A {
+        friend class B;
+    };
+
+    // B can access A.
+    // A cannot access B merely because of this.
+    // Friends of B cannot access A.
+    ```
+
+    Access control and inheritance interactions can be subtle, but these four rules answer the common interview question.
   source: 07_static_explicit_friend.md
 - id: '07.12'
   topic: '`static`, `explicit`, and `friend`'
   question: What is a hidden friend?
   answer: |-
+    ## Short answer
+
     A friend function defined or declared inside a class and primarily found through ADL. It is useful for symmetric operators without broadly polluting ordinary lookup.
 
-    **More detail:** Because ADL finds the function through its argument types, the hidden friend is available to relevant calls without broad namespace visibility.
+    ## Detailed answer
+
+    A function declared and defined as a friend inside a class may be found primarily through ADL:
+
+    ```cpp
+    namespace units {
+    class Distance {
+    public:
+        explicit Distance(int meters) : meters_{meters} {}
+
+        friend bool operator==(const Distance& left,
+                               const Distance& right) {
+            return left.meters_ == right.meters_;
+        }
+
+    private:
+        int meters_;
+    };
+    }
+    ```
+
+    Usage:
+
+    ```cpp
+    units::Distance a{10};
+    units::Distance b{10};
+
+    bool equal = (a == b);
+    ```
+
+    ADL associates the operands with namespace `units` and finds the hidden friend.
+
+    ### Benefits
+
+    - The function is closely documented with the type.
+    - It gets symmetric access to both operands.
+    - It does not broadly participate in unrelated unqualified lookup.
+    - It can avoid public getters added only for operator implementation.
+
+    ### Tradeoff
+
+    Hidden-friend lookup surprises developers unfamiliar with ADL. Keep the pattern conventional and document important operations.
   source: 07_static_explicit_friend.md
 assets: {}
 study_progress:

@@ -12,129 +12,1185 @@ cards:
   topic: Modern C++ Language Features and Iteration
   question: Does `auto` mean dynamic typing?
   answer: |-
+    ## Short answer
+
     No. The compiler deduces one static type at compile time.
 
-    **More detail:** The deduced type is fixed at compile time and can be inspected by the compiler; `auto` does not add runtime type discovery.
+    ## Detailed answer
+
+    `auto` asks the compiler to deduce a static type from the initializer:
+
+    ```cpp
+    auto count = 10;        // int
+    auto voltage = 3.3;     // double
+    auto name = std::string{"imu"}; // std::string
+    ```
+
+    The variable does not change type later:
+
+    ```cpp
+    auto value = 10; // int
+    value = 20;      // valid
+    // value = "text"; // error
+    ```
+
+    ### Why use it?
+
+    `auto` is valuable when:
+
+    - The type is obvious from the initializer.
+    - The exact type is verbose.
+    - The type is an iterator or lambda closure.
+    - Template types may change while the intended operation remains the same.
+    - Repeating the type creates opportunities for accidental conversions.
+
+    ```cpp
+    auto iterator = devices.find(id);
+    auto owner = std::make_unique<Device>();
+    auto callback = [](int value) { return value * 2; };
+    ```
+
+    ### Avoid obscuring important semantics
+
+    This may hide too much:
+
+    ```cpp
+    auto result = perform_operation();
+    ```
+
+    If ownership, units, precision, or cost are not obvious, an explicit type or clearer function name may communicate more.
+
+    ```cpp
+    std::unique_ptr<Device> device = create_device();
+    Milliseconds timeout = read_timeout();
+    ```
+
+    ### Avoid accidental conversion from repeated types
+
+    ```cpp
+    std::vector<std::uint64_t> values;
+    auto size = values.size(); // correct container size_type
+    ```
+
+    An explicit `int` could narrow or create signed/unsigned issues:
+
+    ```cpp
+    int size = values.size(); // possible narrowing
+    ```
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.2'
   topic: Modern C++ Language Features and Iteration
   question: What does plain `auto` usually discard?
   answer: |-
+    ## Short answer
+
     References and top-level const. Add `&`, `const &`, `*`, or `&&` when those semantics are required.
 
-    **More detail:** Deduction follows template-like rules; write the desired reference and cv-qualification explicitly when copies or mutation matter.
+    ## Detailed answer
+
+    Plain `auto` normally drops references and top-level const:
+
+    ```cpp
+    const int original = 42;
+    const int& reference = original;
+
+    auto a = original;  // int
+    auto b = reference; // int
+    ```
+
+    Both `a` and `b` are independent mutable integers.
+
+    ### Preserve reference semantics
+
+    ```cpp
+    auto& c = reference;       // const int&
+    const auto& d = original;  // const int&
+    ```
+
+    `auto&` preserves reference binding, and low-level/referred-to const participates in deduction.
+
+    ### Mutable reference
+
+    ```cpp
+    std::vector<int> values{1, 2, 3};
+
+    for (auto& value : values) {
+        value *= 2;
+    }
+    ```
+
+    ### Pointer deduction
+
+    ```cpp
+    const int* pointer = &original;
+
+    auto p1 = pointer;  // const int*
+    auto* p2 = pointer; // const int*
+    ```
+
+    `auto*` documents that a pointer is expected and rejects a non-pointer initializer.
+
+    ### `auto&&`
+
+    Outside template discussions, `auto&&` uses forwarding-reference deduction:
+
+    ```cpp
+    int value = 10;
+
+    auto&& a = value; // int&
+    auto&& b = 20;    // int&&
+    ```
+
+    Reference collapsing produces:
+
+    ```text
+    T&  + &  -> T&
+    T&  + && -> T&
+    T&& + &  -> T&
+    T&& + && -> T&&
+    ```
+
+    This makes `auto&&` useful when generic code should bind whatever category an expression provides.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.3'
   topic: Modern C++ Language Features and Iteration
   question: What is the brace-deduction trap with `auto`?
   answer: |-
+    ## Short answer
+
     `auto x{1}` deduces `int`, while `auto x = {1}` normally deduces `std::initializer_list<int>`.
 
-    **More detail:** The first form uses direct-list initialization of one element, while the equals form deduces an initializer-list type.
+    ## Detailed answer
+
+    These forms are different:
+
+    ```cpp
+    auto a{1};    // int
+    auto b = {1}; // std::initializer_list<int>
+    auto c = {1, 2, 3}; // std::initializer_list<int>
+    ```
+
+    This is invalid:
+
+    ```cpp
+    // auto d{1, 2}; // direct-list auto requires one element
+    ```
+
+    Elements of an initializer list must have a compatible deduced type:
+
+    ```cpp
+    // auto values = {1, 2.5}; // cannot deduce one element type
+    ```
+
+    ### Accidental copies
+
+    ```cpp
+    const auto item = container.front(); // copy
+    const auto& item_ref = container.front(); // borrow
+    ```
+
+    A copy may be correct if the element must remain valid after container mutation. A reference may be correct if avoiding the copy matters and lifetime is safe.
+
+    ### Proxy types
+
+    Some APIs return proxy objects rather than real references:
+
+    ```cpp
+    std::vector<bool> bits{true, false};
+
+    auto bit = bits[0]; // proxy type, not necessarily bool
+    ```
+
+    `auto` accurately preserves the returned proxy type, which can surprise code expecting a value. Request the semantic value explicitly when desired:
+
+    ```cpp
+    bool bit_value = bits[0];
+    ```
+
+    ### `auto` can hide narrowing or precision decisions
+
+    ```cpp
+    auto duration = 1s; // good if chrono literal and type are known
+    auto number = calculate(); // inspect whether float/double/integer matters
+    ```
+
+    Use strong types and meaningful names rather than relying on `auto` to solve semantic ambiguity.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.4'
   topic: Modern C++ Language Features and Iteration
   question: When should `decltype` or `decltype(auto)` be used?
   answer: |-
+    ## Short answer
+
     When exact declaration/expression type rules matter, especially preserving references in generic forwarding or wrapper code. Parenthesization can change `decltype` results.
 
-    **More detail:** These tools are most valuable in generic code where spelling the exact dependent type would be brittle or difficult.
+    ## Detailed answer
+
+    `decltype` obtains a type without evaluating the expression.
+
+    ```cpp
+    int value = 10;
+    const int& reference = value;
+
+    decltype(value) a = 20;     // int
+    decltype(reference) b = value; // const int&
+    ```
+
+    ### Special rule for unparenthesized names
+
+    For an unparenthesized identifier/member access, `decltype(name)` produces the declared type.
+
+    For other expressions, value category affects the result:
+
+    ```cpp
+    decltype((value)) c = value; // int&
+    ```
+
+    Because `(value)` is an lvalue expression, `decltype((value))` is `int&`.
+
+    A useful summary:
+
+    ```text
+    decltype(expression)
+    lvalue expression  -> T&
+    xvalue expression  -> T&&
+    prvalue expression -> T
+    ```
+
+    except for the special unparenthesized-name rule.
+
+    ### `decltype(auto)`
+
+    `decltype(auto)` uses `decltype` rules for deduction:
+
+    ```cpp
+    decltype(auto) get_reference(int& value) {
+        return (value); // returns int&
+    }
+    ```
+
+    Without parentheses:
+
+    ```cpp
+    decltype(auto) get_value_member() {
+        return object.member; // special declared-type rule may apply
+    }
+    ```
+
+    This power can accidentally return dangling references. Use it only when exact propagation is intended and reviewed.
+
+    ### `auto` return type
+
+    ```cpp
+    auto get_value() {
+        return object.member; // deduces by value
+    }
+    ```
+
+    Plain `auto` return deduction generally drops references similarly to variable deduction.
+
+    ### Trailing return type
+
+    ```cpp
+    template<class A, class B>
+    auto add(const A& a, const B& b) -> decltype(a + b) {
+        return a + b;
+    }
+    ```
+
+    This was especially important before C++14 return deduction and remains useful when the return type needs explicit expression-dependent documentation.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.5'
   topic: Modern C++ Language Features and Iteration
   question: How do common range-for declarations differ?
   answer: |-
+    ## Short answer
+
     `auto x` copies; `auto& x` mutates the element; `const auto& x` reads without copying; `auto&& x` is a generic binding useful for proxy and range element types.
 
-    **More detail:** Prefer references for large elements or mutation; use a value when an independent copy is intentional and affordable.
+    ## Detailed answer
+
+    A range-based loop iterates through elements:
+
+    ```cpp
+    std::vector<int> values{10, 20, 30};
+
+    for (int value : values) {
+        std::cout << value << '\n';
+    }
+    ```
+
+    The syntax is:
+
+    ```cpp
+    for (item_declaration : range_expression) {
+        body
+    }
+    ```
+
+    Examples of ranges include:
+
+    - Built-in arrays.
+    - Standard containers.
+    - Types with suitable `begin()` and `end()`.
+    - Types with free `begin`/`end` found through lookup.
+    - C++20 range views.
+
+    ### Why use it?
+
+    It expresses “for every element” without exposing irrelevant iterator/index mechanics.
+
+    ```cpp
+    for (const auto& sensor : sensors) {
+        sensor.poll();
+    }
+    ```
+
+    This is clearer than:
+
+    ```cpp
+    for (std::size_t i = 0; i < sensors.size(); ++i) {
+        sensors[i].poll();
+    }
+    ```
+
+    when the index is never used.
+
+    ### It is not always superior
+
+    Use another loop when you need:
+
+    - The numeric index.
+    - A stride other than one.
+    - Simultaneous traversal of multiple ranges.
+    - Manual iterator control.
+    - Erasure during traversal.
+    - Reverse iteration without a range adaptor.
+    - Early manipulation of begin/end positions.
+
+    This choice controls copying, mutation, constness, and proxy behavior.
+
+    ### By value
+
+    ```cpp
+    for (auto value : values) {
+        process(value);
+    }
+    ```
+
+    Each iteration initializes a local value. Use this when:
+
+    - Elements are cheap to copy.
+    - You intentionally need an independent copy.
+    - The algorithm modifies only the copy.
+    - A stable local value is needed despite later container changes.
+
+    ### Mutable reference
+
+    ```cpp
+    for (auto& value : values) {
+        value.normalize();
+    }
+    ```
+
+    Use when modifying actual elements.
+
+    ### Const reference
+
+    ```cpp
+    for (const auto& value : values) {
+        inspect(value);
+    }
+    ```
+
+    This is the common default for large read-only elements.
+
+    ### Forwarding/generic reference
+
+    ```cpp
+    for (auto&& value : range) {
+        process(value);
+    }
+    ```
+
+    This adapts to the range's element reference type and handles proxy/reference-like results. It is common in generic range code. It does not automatically mean the function should move from every element.
+
+    ### Const by value
+
+    ```cpp
+    for (const auto value : values) {
+    }
+    ```
+
+    This still copies each element; const only prevents changing the local copy. It rarely provides an advantage over `auto value` or `const auto& value`.
+
+    ### Explicit type danger
+
+    ```cpp
+    std::map<std::string, int> counts;
+
+    for (const std::pair<std::string, int>& item : counts) {
+    }
+    ```
+
+    The map's actual value type is:
+
+    ```cpp
+    std::pair<const std::string, int>
+    ```
+
+    The mismatched explicit type may cause a temporary conversion and copy each iteration. Prefer:
+
+    ```cpp
+    for (const auto& item : counts) {
+    }
+    ```
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.6'
   topic: Modern C++ Language Features and Iteration
   question: When is an index loop preferable to a range-for?
   answer: |-
+    ## Short answer
+
     When the index, a stride, coordinated traversal of multiple ranges, or precise mutation/erasure control is part of the algorithm.
 
-    **More detail:** An index is appropriate when it is part of the logic, but otherwise range-for avoids manual bounds and indexing errors.
+    ## Detailed answer
+
+    Each form communicates different needs.
+
+    ### Index loop
+
+    ```cpp
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        use(index, values[index]);
+    }
+    ```
+
+    Best when:
+
+    - The index is part of the operation.
+    - Random access is required.
+    - Traversing multiple indexed arrays.
+    - Applying a stride or neighborhood.
+    - Interfacing with index-based APIs.
+
+    For reverse loops, unsigned underflow is a common bug:
+
+    ```cpp
+    // for (std::size_t i = values.size() - 1; i >= 0; --i) // wrong
+    ```
+
+    Use reverse iterators, reverse views, or a safe pattern.
+
+    C++20 provides `std::ssize` for a signed size when signed arithmetic is appropriate.
+
+    ### Iterator loop
+
+    ```cpp
+    for (auto iterator = values.begin(); iterator != values.end();) {
+        if (should_remove(*iterator)) {
+            iterator = values.erase(iterator);
+        } else {
+            ++iterator;
+        }
+    }
+    ```
+
+    Best for explicit iterator operations, erasure, subranges, and non-indexable containers.
+
+    ### Range loop
+
+    ```cpp
+    for (const auto& value : values) {
+        process(value);
+    }
+    ```
+
+    Best for direct element traversal.
+
+    ### Algorithm
+
+    ```cpp
+    std::ranges::for_each(values, process);
+    ```
+
+    Best when the operation composes with other algorithms or the algorithm name communicates intent.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.7'
   topic: Modern C++ Language Features and Iteration
   question: What can structured bindings decompose?
   answer: |-
+    ## Short answer
+
     Arrays, tuple-like types, and eligible class objects. Use `auto&` or `const auto&` when you need references rather than copies.
 
-    **More detail:** Binding by value copies the decomposed elements; reference-qualified bindings preserve access to the original object.
+    ## Detailed answer
+
+    Structured bindings decompose an object:
+
+    ```cpp
+    std::pair<int, std::string> entry{42, "camera"};
+
+    auto [id, name] = entry;
+    ```
+
+    This creates value-like bindings according to the declaration.
+
+    ### Avoid copies with references
+
+    ```cpp
+    auto& [id, name] = entry;
+    name = "imu"; // modifies entry.second
+    ```
+
+    Read-only borrowing:
+
+    ```cpp
+    const auto& [id, name] = entry;
+    ```
+
+    ### Maps
+
+    ```cpp
+    for (const auto& [key, value] : counts) {
+        std::cout << key << ": " << value << '\n';
+    }
+    ```
+
+    For a map, `key` is effectively const because keys cannot be modified in place without breaking ordering/hash invariants.
+
+    To modify mapped values:
+
+    ```cpp
+    for (auto& [key, value] : counts) {
+        ++value;
+    }
+    ```
+
+    ### Arrays and tuple-like types
+
+    ```cpp
+    int coordinates[2]{10, 20};
+    auto [x, y] = coordinates;
+    ```
+
+    `std::tuple`, `std::pair`, `std::array`, and user-defined tuple-like types can participate.
+
+    ### `if` with structured binding
+
+    ```cpp
+    if (auto [iterator, inserted] = map.insert({key, value}); inserted) {
+        // inserted successfully
+    }
+    ```
+
+    The bindings remain scoped to the `if` statement.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.8'
   topic: Modern C++ Language Features and Iteration
   question: What lifetime risk exists with lambda captures?
   answer: |-
+    ## Short answer
+
     Reference captures and captured `this` can dangle if the closure outlives the referenced object. Capturing `this` does not copy the whole object unless explicitly requested through an appropriate capture.
 
-    **More detail:** A closure does not automatically extend the lifetime of objects captured by reference or of an object reached through `this`.
+    ## Detailed answer
+
+    A lambda may outlive captured references:
+
+    ```cpp
+    std::function<void()> make_callback() {
+        int value = 10;
+
+        return [&value] {
+            std::cout << value;
+        }; // dangling reference after return
+    }
+    ```
+
+    Capture by value for independent lifetime:
+
+    ```cpp
+    return [value] {
+        std::cout << value;
+    };
+    ```
+
+    ### Capturing `this`
+
+    ```cpp
+    class Device {
+    public:
+        auto callback() {
+            return [this] {
+                poll();
+            };
+        }
+
+    private:
+        void poll();
+    };
+    ```
+
+    `[this]` stores a pointer; it does not copy or own the `Device`. The callback dangles after the object dies.
+
+    `[*this]` captures an object copy:
+
+    ```cpp
+    return [*this] {
+        poll();
+    };
+    ```
+
+    This requires the object to be copyable and gives snapshot-like semantics that may still be inappropriate for resource owners.
+
+    ### Shared and weak lifetime
+
+    An asynchronous callback can capture shared ownership:
+
+    ```cpp
+    auto self = shared_from_this();
+
+    return [self] {
+        self->poll();
+    };
+    ```
+
+    This keeps the object alive but can create ownership cycles. A `weak_ptr` capture plus `lock()` often represents observation more accurately.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.9'
   topic: Modern C++ Language Features and Iteration
   question: Why prefer a named algorithm over a handwritten loop?
   answer: |-
+    ## Short answer
+
     When it directly expresses intent—such as find, sort, transform, or count—it reduces indexing errors and communicates the operation more clearly.
 
-    **More detail:** Standard algorithms separate the operation from traversal details and often work consistently across different iterator-based containers.
+    ## Detailed answer
+
+    The standard library often names the intent:
+
+    ```cpp
+    auto iterator = std::find(values.begin(), values.end(), target);
+    std::sort(values.begin(), values.end());
+    auto total = std::accumulate(values.begin(), values.end(), 0);
+    ```
+
+    C++20 ranges reduce iterator pairs:
+
+    ```cpp
+    auto iterator = std::ranges::find(values, target);
+    std::ranges::sort(values);
+    ```
+
+    ### Why algorithms help
+
+    - They communicate intent.
+    - Iterator/range boundaries are centralized.
+    - They reduce indexing errors.
+    - Library implementations may optimize well.
+    - They compose with predicates and projections.
+
+    ### When a loop is clearer
+
+    Use a loop when:
+
+    - Control flow is complex.
+    - Multiple effects occur.
+    - Early exits have domain meaning.
+    - State transitions are clearer procedurally.
+    - Algorithm composition becomes harder to read than the operation.
+
+    Do not replace readable loops with an opaque chain merely because ranges are newer.
+
+    ### Projection example
+
+    ```cpp
+    std::ranges::sort(devices, {}, &Device::id);
+    ```
+
+    This sorts using each device's ID without a custom comparison lambda.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.10'
   topic: Modern C++ Language Features and Iteration
   question: What are the main benefits and risks of C++20 views?
   answer: |-
+    ## Short answer
+
     Views are lazy and composable with little copying, but many are non-owning. Their source range and captured state must outlive use.
 
-    **More detail:** A view pipeline may defer work until iteration, so both the source range and any referenced state must still be valid then.
+    ## Detailed answer
+
+    Views provide lazy transformations:
+
+    ```cpp
+    auto even_squares =
+        values
+        | std::views::filter([](int value) { return value % 2 == 0; })
+        | std::views::transform([](int value) { return value * value; });
+
+    for (int value : even_squares) {
+        process(value);
+    }
+    ```
+
+    ### Lazy evaluation
+
+    The filter and transform usually run as elements are requested. They do not necessarily allocate a new container.
+
+    ### Views often borrow
+
+    A view may refer to an existing range:
+
+    ```cpp
+    auto filtered = values | std::views::filter(predicate);
+    ```
+
+    If `values` dies, `filtered` may dangle.
+
+    Some adaptors own/move an rvalue range depending on the adaptor and standard version, but never assume lifetime without inspecting the view type and construction.
+
+    ### Mutation
+
+    A view can expose mutable elements if the underlying range and view permit it. "View" does not inherently mean const.
+
+    ### Complexity
+
+    Lazy composition can avoid temporary allocations, but repeated traversal may repeat predicate/transformation work. Document single-pass versus multi-pass expectations.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.11'
   topic: Modern C++ Language Features and Iteration
   question: Why is `nullptr` better than `0` or `NULL`?
   answer: |-
+    ## Short answer
+
     It has a dedicated null-pointer type, avoids integer-overload ambiguity, and expresses pointer intent.
 
-    **More detail:** `nullptr` converts to pointer types but not integer types, making overloaded calls clearer and safer than using `0` or `NULL`.
+    ## Detailed answer
+
+    Before C++11, code used `0` or `NULL`:
+
+    ```cpp
+    void select(int);
+    void select(Device*);
+
+    select(0); // selects int
+    ```
+
+    `nullptr` has type `std::nullptr_t` and expresses pointer intent:
+
+    ```cpp
+    select(nullptr); // selects Device*
+    ```
+
+    It converts to pointer and pointer-to-member types, but not to arbitrary integer parameters.
+
+    ### Generic code
+
+    ```cpp
+    auto pointer = nullptr; // std::nullptr_t
+    ```
+
+    This is not `Device*`. If the pointer type matters:
+
+    ```cpp
+    Device* pointer = nullptr;
+    ```
+
+    ### Avoid C-style null macros in C++ APIs
+
+    Use `nullptr` consistently for:
+
+    - Initialization.
+    - Resetting non-owning pointers.
+    - Null comparisons.
+    - Optional pointer arguments.
+
+    Smart pointers usually compare/reset naturally:
+
+    ```cpp
+    std::unique_ptr<Device> device;
+    if (!device) {
+    }
+    ```
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.12'
   topic: Modern C++ Language Features and Iteration
   question: What does `enum class` improve?
   answer: |-
+    ## Short answer
+
     It scopes enumerator names and prevents unintended implicit conversion to integers, improving type safety.
 
-    **More detail:** Enumerators are qualified, for example `Color::Red`, and conversion requires an explicit cast when integer representation is intended.
+    ## Detailed answer
+
+    Unscoped enum values enter the surrounding scope and convert implicitly to integers:
+
+    ```cpp
+    enum Color {
+        Red,
+        Green
+    };
+    ```
+
+    Scoped enumeration:
+
+    ```cpp
+    enum class Color : std::uint8_t {
+        Red,
+        Green
+    };
+    ```
+
+    Usage requires qualification:
+
+    ```cpp
+    Color color = Color::Red;
+    ```
+
+    There is no ordinary implicit integer conversion:
+
+    ```cpp
+    // int value = Color::Red; // error
+    ```
+
+    Use an explicit cast when needed:
+
+    ```cpp
+    auto raw = static_cast<std::uint8_t>(color);
+    ```
+
+    ### Benefits
+
+    - Prevents enumerator name collisions.
+    - Prevents accidental arithmetic/comparison with integers.
+    - Allows explicit underlying type.
+    - Improves overload type safety.
+
+    ### Flags
+
+    Bitmask enums need explicitly defined operators:
+
+    ```cpp
+    enum class Permission : unsigned {
+        Read  = 1u << 0,
+        Write = 1u << 1
+    };
+
+    constexpr Permission operator|(Permission left, Permission right) {
+        return static_cast<Permission>(
+            static_cast<unsigned>(left) |
+            static_cast<unsigned>(right));
+    }
+    ```
+
+    Do not assume every enum should permit bitwise operations.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.13'
   topic: Modern C++ Language Features and Iteration
   question: How do `constexpr`, `consteval`, and `constinit` differ?
   answer: |-
+    ## Short answer
+
     `constexpr` permits compile-time evaluation when requirements are met; `consteval` requires compile-time calls; `constinit` requires static initialization of a static/thread object but does not make it const.
 
-    **More detail:** `constinit` addresses initialization timing, not immutability; a `constinit` object may still be mutable after startup.
+    ## Detailed answer
+
+    ### `constexpr`
+
+    A constexpr object is a constant-expression value:
+
+    ```cpp
+    constexpr std::size_t buffer_size = 128;
+    std::array<std::byte, buffer_size> buffer;
+    ```
+
+    A constexpr function can execute at compile time when used with suitable inputs/context:
+
+    ```cpp
+    constexpr int square(int value) {
+        return value * value;
+    }
+
+    constexpr int compile_time = square(5);
+
+    int runtime_input = read_input();
+    int runtime_result = square(runtime_input);
+    ```
+
+    The second call can execute at runtime.
+
+    ### `consteval`
+
+    ```cpp
+    consteval std::uint32_t make_id(unsigned major, unsigned minor) {
+        return major * 1000u + minor;
+    }
+
+    constexpr auto id = make_id(2, 5);
+    ```
+
+    Every potentially evaluated call must produce a compile-time result.
+
+    ### `constinit`
+
+    ```cpp
+    constinit int startup_state = 0;
+    ```
+
+    `constinit` applies to static/thread storage and requires static initialization, helping avoid dynamic initialization-order problems. It does not make the object immutable:
+
+    ```cpp
+    startup_state = 1; // allowed
+    ```
+
+    ### Comparison
+
+    | Keyword | Main guarantee |
+    |---|---|
+    | `const` | No mutation through this object/access path |
+    | `constexpr` object | Constant-expression value |
+    | `constexpr` function | May run at compile time |
+    | `consteval` function | Must run at compile time |
+    | `constinit` variable | Must be statically initialized |
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.14'
   topic: Modern C++ Language Features and Iteration
   question: What does `noexcept` communicate?
   answer: |-
+    ## Short answer
+
     The function promises not to let exceptions escape. Violating the promise calls `std::terminate`; accurate `noexcept` can also enable safer/faster container moves.
 
-    **More detail:** Use conditional `noexcept` where appropriate for move operations, and ensure the promise reflects every operation they perform.
+    ## Detailed answer
+
+    A function can promise not to let exceptions escape:
+
+    ```cpp
+    void reset() noexcept {
+    }
+    ```
+
+    If an exception escapes a `noexcept` function, the program calls `std::terminate`.
+
+    ### Query form
+
+    ```cpp
+    static_assert(noexcept(reset()));
+    ```
+
+    Conditional specification:
+
+    ```cpp
+    template<class T>
+    void swap_values(T& a, T& b)
+        noexcept(noexcept(std::swap(a, b))) {
+        std::swap(a, b);
+    }
+    ```
+
+    ### Move operations
+
+    Containers often prefer a `noexcept` move constructor during reallocation:
+
+    ```cpp
+    Widget(Widget&&) noexcept;
+    ```
+
+    If moving might throw and copying is available, a vector may copy to preserve its strong exception guarantee.
+
+    ### Destructors
+
+    Destructors are normally non-throwing. Allowing an exception to escape during stack unwinding can terminate the process.
+
+    ### Embedded code
+
+    `noexcept` does not mean:
+
+    - No failure.
+    - No blocking.
+    - Constant-time behavior.
+    - No allocation.
+    - No error code.
+
+    It only concerns exception escape.
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.15'
   topic: Modern C++ Language Features and Iteration
   question: What do `optional`, `variant`, `span`, and `string_view` express?
   answer: |-
+    ## Short answer
+
     `optional` expresses possible absence; `variant` a closed set of alternatives; `span` a borrowed contiguous range; `string_view` a borrowed character sequence. The view types do not own their data.
 
-    **More detail:** `span` and `string_view` are non-owning views; `optional` and `variant` store their contained value directly.
+    ## Detailed answer
+
+    ### `std::optional`
+
+    Represents a value that may be absent:
+
+    ```cpp
+    std::optional<Device> find_device(DeviceId id);
+    ```
+
+    Usage:
+
+    ```cpp
+    if (auto device = find_device(id)) {
+        device->start();
+    }
+    ```
+
+    Tradeoffs:
+
+    - Expresses absence without sentinel values.
+    - Stores the value inline in the optional object.
+    - Does not itself explain why the value is absent.
+    - Copy/move cost follows the contained type.
+
+    ### `std::variant`
+
+    Represents one of a fixed set of types:
+
+    ```cpp
+    using Message = std::variant<Status, Command, Error>;
+    ```
+
+    Visit safely:
+
+    ```cpp
+    std::visit([](const auto& message) {
+        process(message);
+    }, value);
+    ```
+
+    It is a type-safe alternative to untagged unions and some inheritance designs.
+
+    ### `std::any`
+
+    Stores a value of almost any copyable type with runtime type checking. It trades compile-time exhaustiveness for flexibility and is less common in performance-sensitive interfaces.
+
+    ### `std::expected` (C++23)
+
+    Represents either a success value or an error value:
+
+    ```cpp
+    std::expected<Device, Error> create_device();
+    ```
+
+    It communicates failure reasons more directly than `optional`.
+
+    ### `std::span`
+
+    A non-owning view over contiguous elements:
+
+    ```cpp
+    void transmit(std::span<const std::byte> bytes);
+    ```
+
+    It carries pointer and size together and accepts compatible arrays/vectors.
+
+    Mutable view:
+
+    ```cpp
+    void clear(std::span<std::byte> bytes);
+    ```
+
+    ### `std::string_view`
+
+    A non-owning character sequence:
+
+    ```cpp
+    void log(std::string_view message);
+    ```
+
+    It can avoid allocation/copying when observing strings.
+
+    ### Lifetime risk
+
+    Neither owns or extends data lifetime:
+
+    ```cpp
+    std::string_view bad() {
+        std::string local = "temporary";
+        return local; // dangling view
+    }
+    ```
+
+    A string view is not guaranteed null-terminated. Do not pass `.data()` to a C string API unless termination is established.
+
+    ### Const handle versus const elements
+
+    ```cpp
+    const std::span<int> span = values;
+    span[0] = 42; // allowed: handle constness does not make elements const
+    ```
+
+    For read-only elements:
+
+    ```cpp
+    std::span<const int> span = values;
+    ```
   source: 09_modern_cpp_language_features_and_iteration.md
 - id: '09.16'
   topic: Modern C++ Language Features and Iteration
   question: Why use `override`, `= default`, and `= delete`?
   answer: |-
+    ## Short answer
+
     They make intent compiler-checkable: verify an override, request the generated operation, or explicitly forbid an operation.
 
-    **More detail:** `override` catches signature mismatches, `= default` requests generated behavior, and `= delete` rejects selected operations at compile time.
+    ## Detailed answer
+
+    ### `override`
+
+    ```cpp
+    class Device {
+    public:
+        virtual ~Device() = default;
+        virtual void start() = 0;
+    };
+
+    class Camera : public Device {
+    public:
+        void start() override;
+    };
+    ```
+
+    The compiler verifies that `Camera::start` actually overrides a virtual base function. A signature mismatch becomes an error rather than silently creating a new function.
+
+    ### `final`
+
+    ```cpp
+    class FixedDevice final : public Device {
+    };
+    ```
+
+    Or:
+
+    ```cpp
+    void start() final;
+    ```
+
+    It prevents further derivation or overriding where the design requires closure.
+
+    ### Defaulted functions
+
+    ```cpp
+    Device() = default;
+    ~Device() = default;
+    ```
+
+    Explicitly request compiler-generated behavior.
+
+    ### Deleted functions
+
+    ```cpp
+    Device(const Device&) = delete;
+    Device& operator=(const Device&) = delete;
+    ```
+
+    Express that an operation is prohibited and obtain clear diagnostics.
   source: 09_modern_cpp_language_features_and_iteration.md
 assets: {}
 study_progress:

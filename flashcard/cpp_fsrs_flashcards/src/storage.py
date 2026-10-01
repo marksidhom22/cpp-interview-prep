@@ -6,8 +6,10 @@ import os
 import re
 import sqlite3
 import unicodedata
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -129,10 +131,28 @@ def _validate_document(data: object) -> dict[str, object]:
     return data
 
 
-def read_deck_document(path: Path) -> dict[str, object]:
-    if not path.is_file() or path.stat().st_size > MAX_DECK_BYTES:
+def _deck_signature(path: Path) -> tuple[str, int, int]:
+    if not path.is_file():
         raise ValueError(f"Deck file is missing or too large: {path}")
+    stat = path.stat()
+    if stat.st_size > MAX_DECK_BYTES:
+        raise ValueError(f"Deck file is missing or too large: {path}")
+    return str(path.resolve()), stat.st_mtime_ns, stat.st_size
+
+
+@lru_cache(maxsize=64)
+def _cached_deck_document(
+    resolved_path: str, modified_ns: int, size: int
+) -> dict[str, object]:
+    del modified_ns, size
+    path = Path(resolved_path)
     return _validate_document(yaml.safe_load(path.read_text(encoding="utf-8")) or {})
+
+
+def read_deck_document(path: Path) -> dict[str, object]:
+    # Callers intentionally mutate the returned mapping before an atomic write,
+    # so keep the cached parse private and return an independent document.
+    return deepcopy(_cached_deck_document(*_deck_signature(path)))
 
 
 def write_deck_document(path: Path, data: dict[str, object]) -> None:
@@ -178,20 +198,25 @@ def save_deck(deck: Deck) -> None:
     write_deck_document(deck.path, _deck_document(deck, current))
 
 
-def _load_deck(path: Path) -> Deck:
-    data = read_deck_document(path)
+@lru_cache(maxsize=64)
+def _cached_deck(resolved_path: str, modified_ns: int, size: int) -> Deck:
+    data = _cached_deck_document(resolved_path, modified_ns, size)
     settings = data["study_settings"]
     assert isinstance(settings, dict)
     return Deck(
         deck_id=str(data["id"]),
         title=str(data["title"]),
         description=str(data.get("description", "")),
-        path=path,
+        path=Path(resolved_path),
         desired_retention=float(settings.get("desired_retention", 0.90)),
         new_cards_per_day=int(settings.get("new_cards_per_day", 12)),
         timezone_name=str(settings.get("timezone_name", "America/Los_Angeles")),
         maximum_interval_days=int(settings.get("maximum_interval_days", 3650)),
     )
+
+
+def _load_deck(path: Path) -> Deck:
+    return _cached_deck(*_deck_signature(path))
 
 
 def list_decks(directory: Path) -> list[Deck]:
@@ -304,10 +329,17 @@ def _card_sort_key(card_id: str) -> tuple[object, ...]:
     )
 
 
-def load_deck_cards(deck: Deck) -> list[StudyCard]:
-    document = read_deck_document(deck.path)
+@lru_cache(maxsize=64)
+def _cached_deck_cards(
+    deck: Deck, resolved_path: str, modified_ns: int, size: int
+) -> tuple[StudyCard, ...]:
+    document = _cached_deck_document(resolved_path, modified_ns, size)
     cards = [_card_from_record(record, deck) for record in document["cards"]]
-    return sorted(cards, key=lambda card: _card_sort_key(card.card_id))
+    return tuple(sorted(cards, key=lambda card: _card_sort_key(card.card_id)))
+
+
+def load_deck_cards(deck: Deck) -> list[StudyCard]:
+    return list(_cached_deck_cards(deck, *_deck_signature(deck.path)))
 
 
 def next_card_id(cards: list[StudyCard]) -> str:
@@ -473,6 +505,9 @@ class ProgressRepository:
     def __init__(self, deck: Deck) -> None:
         self.deck = deck
         self.deck_id = deck.deck_id
+        self._document_cache: dict[str, object] | None = None
+        self._records_cache: dict[str, ProgressRecord] | None = None
+        self._reviews_cache: tuple[RecentReview, ...] | None = None
 
     @staticmethod
     def _utc(value: datetime) -> datetime:
@@ -501,21 +536,29 @@ class ProgressRepository:
         )
 
     def _read(self) -> tuple[dict[str, object], dict[str, object]]:
-        document = read_deck_document(self.deck.path)
+        if self._document_cache is None:
+            self._document_cache = read_deck_document(self.deck.path)
+        document = self._document_cache
         return document, _progress_section(document)
 
+    def _write(self, document: dict[str, object]) -> None:
+        write_deck_document(self.deck.path, document)
+        self._document_cache = document
+        self._records_cache = None
+        self._reviews_cache = None
+
     def get(self, card_id: str) -> ProgressRecord | None:
-        _, progress = self._read()
-        record = progress["card_states"].get(card_id)
-        return self._record(card_id, record) if isinstance(record, dict) else None
+        return self.get_all().get(card_id)
 
     def get_all(self) -> dict[str, ProgressRecord]:
-        _, progress = self._read()
-        return {
-            str(card_id): self._record(str(card_id), record)
-            for card_id, record in progress["card_states"].items()
-            if isinstance(record, dict)
-        }
+        if self._records_cache is None:
+            _, progress = self._read()
+            self._records_cache = {
+                str(card_id): self._record(str(card_id), record)
+                for card_id, record in progress["card_states"].items()
+                if isinstance(record, dict)
+            }
+        return dict(self._records_cache)
 
     def introduce(self, card_id: str, card: Card, now: datetime) -> ProgressRecord:
         self._utc(now)
@@ -530,7 +573,7 @@ class ProgressRepository:
                 "due": card.due.isoformat(),
                 "fsrs": fsrs_state,
             }
-            write_deck_document(self.deck.path, document)
+            self._write(document)
             existing = states[card_id]
         return self._record(card_id, existing)
 
@@ -559,7 +602,7 @@ class ProgressRepository:
                 "fsrs_log": json.loads(review.to_json()),
             }
         )
-        write_deck_document(self.deck.path, document)
+        self._write(document)
 
     def due_records(self, now: datetime) -> list[ProgressRecord]:
         self._utc(now)
@@ -610,17 +653,20 @@ class ProgressRepository:
         return counts
 
     def recent_reviews(self, limit: int | None = 20) -> list[RecentReview]:
-        _, progress = self._read()
-        reviews = [
-            RecentReview(
-                str(record["card_id"]),
-                datetime.fromisoformat(str(record["reviewed_at"])),
-                _rating_number(record["rating"]),
-                datetime.fromisoformat(str(record["scheduled_due"])),
-            )
-            for record in progress["reviews"]
-        ]
-        reviews.sort(key=lambda review: review.reviewed_at, reverse=True)
+        if self._reviews_cache is None:
+            _, progress = self._read()
+            reviews = [
+                RecentReview(
+                    str(record["card_id"]),
+                    datetime.fromisoformat(str(record["reviewed_at"])),
+                    _rating_number(record["rating"]),
+                    datetime.fromisoformat(str(record["scheduled_due"])),
+                )
+                for record in progress["reviews"]
+            ]
+            reviews.sort(key=lambda review: review.reviewed_at, reverse=True)
+            self._reviews_cache = tuple(reviews)
+        reviews = list(self._reviews_cache)
         return reviews if limit is None else reviews[:limit]
 
     def delete_card_progress(self, card_id: str) -> None:
@@ -629,12 +675,12 @@ class ProgressRepository:
         progress["reviews"] = [
             review for review in progress["reviews"] if review.get("card_id") != card_id
         ]
-        write_deck_document(self.deck.path, document)
+        self._write(document)
 
     def delete_deck_progress(self) -> None:
         document, _ = self._read()
         document["study_progress"] = {"card_states": {}, "reviews": []}
-        write_deck_document(self.deck.path, document)
+        self._write(document)
 
 
 def migrate_legacy_progress(database_path: Path, decks: list[Deck]) -> tuple[int, int]:

@@ -12,121 +12,586 @@ cards:
   topic: Templates and Generic Programming
   question: What is a template?
   answer: |-
+    ## Short answer
+
     A compile-time pattern for producing type-safe functions, classes, aliases, or variables for concrete type or value arguments.
 
-    **More detail:** A template is instantiated for supplied arguments, allowing one definition to express operations over multiple compatible types.
+    ## Detailed answer
+
+    ```cpp
+    template<class T>
+    T square(T value) {
+        return value * value;
+    }
+    ```
+
+    Using it:
+
+    ```cpp
+    int i = square(4);
+    double d = square(1.5);
+    ```
+
+    creates/uses specializations conceptually like:
+
+    ```cpp
+    int square<int>(int);
+    double square<double>(double);
+    ```
+
+    The compiler may inline, merge, or eliminate emitted code, but the language reasons about distinct specializations.
+
+    `T` becomes one concrete static type for each specialization. A template does not store an arbitrary runtime type.
+
+    The selected `T` must support multiplication and conversion to the result:
+
+    ```cpp
+    struct Device {};
+    // square(Device{}); // error: required operation does not exist
+    ```
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.2'
   topic: Templates and Generic Programming
   question: What kinds of template parameters exist?
   answer: |-
+    ## Short answer
+
     Type parameters, non-type parameters, and template-template parameters, each of which may have defaults where allowed.
 
-    **More detail:** Non-type arguments can represent compile-time values such as array extents, while template-template parameters accept template families.
+    ## Detailed answer
+
+    ### Type parameter
+
+    ```cpp
+    template<class T>
+    class Box {};
+    ```
+
+    Equivalent:
+
+    ```cpp
+    template<typename T>
+    class Box {};
+    ```
+
+    ### Non-type parameter
+
+    ```cpp
+    template<class T, std::size_t N>
+    class FixedBuffer {};
+    ```
+
+    `N` is a compile-time value and part of the type.
+
+    ### Template-template parameter
+
+    ```cpp
+    template<class T, template<class...> class Container>
+    class Collection {
+        Container<T> values_;
+    };
+    ```
+
+    ### Defaults
+
+    ```cpp
+    template<class T, class Allocator = std::allocator<T>>
+    class Buffer {};
+    ```
+
+    Caller:
+
+    ```cpp
+    Buffer<int> buffer;
+    ```
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.3'
   topic: Templates and Generic Programming
   question: What is template instantiation?
   answer: |-
+    ## Short answer
+
     The process of forming a concrete specialization from a template and specific arguments. Separate arguments may produce distinct specializations and code.
 
-    **More detail:** Instantiation makes the specialization available to the compiler; distinct argument sets can increase generated code and build work.
+    ## Detailed answer
+
+    Implicit use requests the needed specialization:
+
+    ```cpp
+    Box<int> box{42};
+    ```
+
+    A class layout must be formed, while unused member function bodies are often not instantiated until required.
+
+    ```cpp
+    template<class T>
+    class Wrapper {
+    public:
+        void sort() {
+            value_.sort();
+        }
+
+    private:
+        T value_;
+    };
+
+    Wrapper<int> wrapper; // can be valid if sort() is never instantiated
+    ```
+
+    Explicit definition:
+
+    ```cpp
+    template class Box<int>;
+    ```
+
+    Explicit declaration:
+
+    ```cpp
+    extern template class Box<int>;
+    ```
+
+    The latter tells a translation unit that a definition is provided elsewhere.
+
+    ### Concept diagram
+
+    ```mermaid
+    flowchart LR
+        A[Template definition] --> B[Use with concrete arguments]
+        B --> C[Substitution and constraint checking]
+        C --> D[Instantiate specialization]
+        D --> E[Compile generated function or class]
+    ```
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.4'
   topic: Templates and Generic Programming
   question: What must a substituted template type support?
   answer: |-
+    ## Short answer
+
     Every operation required by the selected code path. Before concepts, these requirements were often implicit compile-time duck typing.
 
-    **More detail:** Requirements are determined by operations actually instantiated, so a type may work for one algorithm path and fail for another.
+    ## Detailed answer
+
+    ```cpp
+    template<class T>
+    T combine(const T& left, const T& right) {
+        return left + right;
+    }
+    ```
+
+    Any `T` with a suitable `+` and result can work. It need not inherit from a designated base class.
+
+    This is sometimes called compile-time duck typing: capability comes from supported operations.
+
+    Unconstrained failures can produce deep diagnostics. Pre-C++20 code used documentation, traits, SFINAE, and static assertions. C++20 concepts place requirements in the declaration.
+
+    Syntax is not the whole contract. A sort comparator must obey strict weak ordering; the compiler generally cannot prove that semantic law.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.5'
   topic: Templates and Generic Programming
   question: Why do template definitions usually live in headers?
   answer: |-
+    ## Short answer
+
     The translation unit performing implicit instantiation must see the complete template definition, not only a declaration.
 
-    **More detail:** A visible definition lets each using translation unit generate the required specialization; explicit instantiation is a controlled alternative.
+    ## Detailed answer
+
+    An ordinary function caller can compile from a declaration and link one precompiled definition.
+
+    A template caller needs the definition to instantiate a new specialization:
+
+    ```cpp
+    template<class T>
+    T add(T left, T right) {
+        return left + right;
+    }
+    ```
+
+    If only a declaration is visible and no matching explicit instantiation is linked, the result is often an undefined-reference link error.
+
+    Options:
+
+    - Define in the header.
+    - Put implementation in a `.tpp`/`.ipp` included by the header.
+    - Explicitly instantiate a closed supported type set in a `.cpp`.
+    - Use a suitable modules/toolchain model.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.6'
   topic: Templates and Generic Programming
   question: What is the difference between full and partial specialization?
   answer: |-
+    ## Short answer
+
     Full specialization replaces one exact argument set. Partial specialization matches a family of arguments and is available for class and variable templates, not function templates.
 
-    **More detail:** Partial specialization is useful for type traits and class behavior selected by a pattern of template arguments.
+    ## Detailed answer
+
+    Primary template:
+
+    ```cpp
+    template<class T>
+    struct TypeName {
+        static constexpr std::string_view value = "unknown";
+    };
+    ```
+
+    Full specialization:
+
+    ```cpp
+    template<>
+    struct TypeName<int> {
+        static constexpr std::string_view value = "int";
+    };
+    ```
+
+    Partial specialization:
+
+    ```cpp
+    template<class T>
+    struct TypeName<T*> {
+        static constexpr std::string_view value = "pointer";
+    };
+    ```
+
+    Partial specialization matches a family and is available for class and variable templates.
+
+    Function templates cannot be partially specialized. Use overloading:
+
+    ```cpp
+    template<class T>
+    void process(T value);
+
+    template<class T>
+    void process(T* value);
+    ```
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.7'
   topic: Templates and Generic Programming
   question: What should be used instead of partial specialization for function templates?
   answer: |-
+    ## Short answer
+
     Overloading, constraints/concepts, or a helper class that can be partially specialized.
 
-    **More detail:** Constrained overloads are generally clearer for function selection; a helper class enables specialization when structural customization is needed.
+    ## Detailed answer
+
+    Function templates cannot be partially specialized. Use function overloading—often constrained with concepts—because overload resolution is the language mechanism designed to choose among function implementations.
+
+    ```cpp
+    template<class T>
+    void encode(const T& value);
+
+    template<std::integral T>
+    void encode(T value);
+
+    template<class T>
+    void encode(const std::vector<T>& values);
+    ```
+
+    Full specialization of a function template is legal, but overloads usually interact more predictably with overload resolution and are easier to extend. For type-dependent implementation details, another option is to delegate to a class template, because class templates do support partial specialization.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.8'
   topic: Templates and Generic Programming
   question: What are variadic templates and fold expressions?
   answer: |-
+    ## Short answer
+
     Variadic templates accept parameter packs. Fold expressions reduce a pack over a binary operator, such as `(args + ...)`, with unary/binary and left/right forms.
 
-    **More detail:** Fold expressions provide concise reductions over parameter packs, but the operator's identity and evaluation order still matter.
+    ## Detailed answer
+
+    ```cpp
+    template<class... Types>
+    struct TypeList {};
+    ```
+
+    `Types...` declares a template parameter pack.
+
+    ```cpp
+    template<class... Args>
+    void log(Args&&... args);
+    ```
+
+    Pack expansion:
+
+    ```cpp
+    template<class... Args>
+    auto make_device(Args&&... args) {
+        return Device(std::forward<Args>(args)...);
+    }
+    ```
+
+    Pack size:
+
+    ```cpp
+    sizeof...(Args)
+    ```
+
+    Recursive expansion style:
+
+    ```cpp
+    void print_all() {}
+
+    template<class First, class... Rest>
+    void print_all(const First& first, const Rest&... rest) {
+        std::cout << first;
+        print_all(rest...);
+    }
+    ```
+
+    C++17:
+
+    ```cpp
+    template<class... Values>
+    auto sum(Values... values) {
+        return (0 + ... + values);
+    }
+    ```
+
+    Forms include:
+
+    ```cpp
+    (args + ...)
+    (... + args)
+    (initial + ... + args)
+    (args + ... + initial)
+    ```
+
+    Left and right folds group operations differently; this matters for non-associative/user-defined operations.
+
+    Comma fold for effects:
+
+    ```cpp
+    ((std::cout << values << '\n'), ...);
+    ```
+
+    Empty-pack validity depends on fold form/operator; an explicit initial value often clarifies identity.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.9'
   topic: Templates and Generic Programming
   question: What is SFINAE?
   answer: |-
+    ## Short answer
+
     Substitution Failure Is Not An Error: failure while substituting into certain immediate template contexts removes that candidate from overload resolution instead of producing a hard error.
 
-    **More detail:** SFINAE applies only in specified substitution contexts; failures elsewhere remain hard errors and can produce difficult diagnostics.
+    ## Detailed answer
+
+    SFINAE means “Substitution Failure Is Not An Error.”
+
+    ```cpp
+    template<class T,
+             std::enable_if_t<std::is_integral_v<T>, int> = 0>
+    T twice(T value) {
+        return value * 2;
+    }
+    ```
+
+    If substitution fails in a specified immediate context, the candidate is removed rather than making the whole program immediately ill-formed.
+
+    Detection idiom:
+
+    ```cpp
+    template<class, class = void>
+    struct has_size : std::false_type {};
+
+    template<class T>
+    struct has_size<T,
+        std::void_t<decltype(std::declval<T&>().size())>>
+        : std::true_type {};
+    ```
+
+    Not every template error is SFINAE. Body-instantiation failures can be hard errors.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.10'
   topic: Templates and Generic Programming
   question: Why prefer C++20 concepts over complex SFINAE?
   answer: |-
+    ## Short answer
+
     Concepts place requirements in the interface, participate clearly in overload ordering, and usually produce better diagnostics and more maintainable code.
 
-    **More detail:** Concepts name requirements and can constrain overloads directly, making generic interfaces easier to read and diagnose.
+    ## Detailed answer
+
+    ```cpp
+    template<class T>
+    concept Addable = requires(T left, T right) {
+        left + right;
+    };
+
+    template<Addable T>
+    T add(T left, T right) {
+        return left + right;
+    }
+    ```
+
+    Standard concept:
+
+    ```cpp
+    template<std::integral T>
+    T saturating_add(T left, T right);
+    ```
+
+    Requires expression with return constraint:
+
+    ```cpp
+    template<class T>
+    concept Sized = requires(const T& value) {
+        { value.size() } -> std::convertible_to<std::size_t>;
+    };
+    ```
+
+    Concepts state requirements in interfaces, affect viability/specialization, and improve diagnostics. They cannot generally prove semantic laws.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.11'
   topic: Templates and Generic Programming
   question: What is a forwarding reference?
   answer: |-
+    ## Short answer
+
     `T&&` where `T` is deduced under forwarding-reference rules. Combined with `std::forward<T>`, it preserves whether the caller supplied an lvalue or rvalue.
 
-    **More detail:** Forwarding-reference deduction collapses references, and `std::forward<T>` restores the caller's original value category.
+    ## Detailed answer
+
+    ```cpp
+    template<class T>
+    void wrapper(T&& value) {
+        target(std::forward<T>(value));
+    }
+    ```
+
+    With an lvalue `Widget`:
+
+    ```text
+    T = Widget&
+    T&& collapses to Widget&
+    ```
+
+    With an rvalue:
+
+    ```text
+    T = Widget
+    T&& remains Widget&&
+    ```
+
+    The named variable `value` is always an lvalue expression. `std::forward<T>` restores the caller's original category.
+
+    Not every `T&&` is forwarding:
+
+    ```cpp
+    void consume(Widget&&); // ordinary rvalue reference
+    ```
+
+    Forwarding can steal overloads, increase instantiations, and produce lifetime problems. Constrain it.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.12'
   topic: Templates and Generic Programming
   question: What does `if constexpr` do in a template?
   answer: |-
+    ## Short answer
+
     It selects a branch at compile time, and the discarded branch is not instantiated in the same way, allowing type-dependent implementations without requiring every branch to be valid for every type.
 
-    **More detail:** The discarded branch can contain operations invalid for other types, provided it is dependent and the selected branch is valid.
+    ## Detailed answer
+
+    ```cpp
+    template<class T>
+    void encode(const T& value) {
+        if constexpr (std::is_integral_v<T>) {
+            encode_integer(value);
+        } else {
+            encode_object(value);
+        }
+    }
+    ```
+
+    The non-selected branch is discarded for that instantiation.
+
+    An ordinary `if` is a runtime branch and both branches normally must be valid after instantiation.
+
+    Use `if constexpr` when implementation largely overlaps. Use overloads/specialization when interfaces or algorithms differ substantially.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.13'
   topic: Templates and Generic Programming
   question: How do static and runtime polymorphism differ?
   answer: |-
+    ## Short answer
+
     Templates choose behavior at compile time and can inline but require concrete types and may grow code. Virtual functions choose at runtime and support open runtime substitution with indirection and object-model costs.
 
-    **More detail:** Static polymorphism can avoid virtual dispatch but requires types at compile time; runtime polymorphism supports substitution behind a stable interface.
+    ## Detailed answer
+
+    Template:
+
+    ```cpp
+    template<class Device>
+    void start(Device& device) {
+        device.start();
+    }
+    ```
+
+    Use when types are compile-time known and static optimization/value semantics matter.
+
+    Virtual interface: use for runtime-selected/open implementation sets and stable non-template boundaries.
+
+    Variant: use for a closed set with value semantics and exhaustive visitation.
+
+    Type erasure: use to hide concrete types behind a runtime wrapper such as `std::function`.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.14'
   topic: Templates and Generic Programming
   question: What is CRTP?
   answer: |-
+    ## Short answer
+
     The Curiously Recurring Template Pattern makes a derived type a template argument of its base, enabling forms of static polymorphism and mixin behavior without virtual dispatch.
 
-    **More detail:** CRTP behavior is resolved using the derived type at compile time, but it does not provide runtime substitution by itself.
+    ## Detailed answer
+
+    ```cpp
+    template<class Derived>
+    class DeviceBase {
+    public:
+        void start() {
+            static_cast<Derived&>(*this).start_impl();
+        }
+    };
+
+    class Camera : public DeviceBase<Camera> {
+    public:
+        void start_impl() {}
+    };
+    ```
+
+    Benefits:
+
+    - Compile-time dispatch/inlining.
+    - No required vtable.
+    - Mixin/policy composition.
+
+    Costs:
+
+    - Tight coupling and code duplication.
+    - No simple heterogeneous runtime base collection.
+    - More complex diagnostics.
+    - Unsafe relationship if misused.
   source: 11_cpp_templates_and_generic_programming.md
 - id: '11.15'
   topic: Templates and Generic Programming
   question: What are the main template costs?
   answer: |-
+    ## Short answer
+
     Longer builds, verbose diagnostics, implementation exposure in headers, possible code bloat, and more complex interfaces. Use templates when genericity and static guarantees justify those costs.
 
-    **More detail:** Constrain templates and keep diagnostics understandable; use a non-template interface when genericity provides no meaningful benefit.
+    ## Detailed answer
+
+    Templates trade runtime abstraction cost for compile-time work and per-specialization code. The main costs are longer builds, larger binaries from repeated instantiations, complex diagnostics, more implementation exposed in headers, and accidental coupling to compile-time details.
+
+    Mitigations include explicit instantiation for common types, small non-template implementation functions behind template front ends, concepts that fail early with clear contracts, and avoiding unnecessary combinations of template parameters.
+
+    The runtime benefit can be substantial: types and operations are known statically, enabling inlining, constant propagation, and zero-overhead abstraction. But “compile-time” does not automatically mean “free”—inspect build time, object size, final binary size, and generated code when those constraints matter.
   source: 11_cpp_templates_and_generic_programming.md
 assets: {}
 study_progress:

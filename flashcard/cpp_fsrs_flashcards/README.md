@@ -8,13 +8,13 @@ The included **C++ Interview Flashcards** deck contains 171 cards.
 
 - Create, edit, switch, export, import, and remove decks.
 - Configure desired retention, daily new-card limits, timezone, and maximum interval per deck.
-- Add, search, preview, edit, and remove cards.
+- Add, search, preview, edit, and remove cards, including editing or deleting the current card without leaving Study.
 - Write questions and answers in Markdown, including code, tables, and links.
 - Upload PNG, JPEG, WebP, and GIF images into a card.
 - Display remote images when an internet connection is available.
 - Render fenced Mermaid diagrams such as ` ```mermaid ` blocks.
 - Fetch guarded title/description/image previews for public website links.
-- Read questions and answers aloud with the browser's speech engine.
+- Read questions and answers aloud with a single Read/Stop toggle button.
 - Optionally auto-read each question and revealed answer.
 - Prioritize due reviews before new cards.
 - Preserve every Again, Hard, Good, and Easy review event.
