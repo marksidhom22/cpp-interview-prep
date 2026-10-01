@@ -1,0 +1,116 @@
+{% from "_macros.html" import card_editor %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if deck %}{{ deck.title }} · {% endif %}Recall Studio</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="{{ url_for('index', view='Study') }}"><span class="brand-mark">R</span><span>Recall Studio<small>Adaptive learning</small></span></a>
+    {% if decks %}
+      <form action="{{ url_for('select_deck') }}" method="post" class="deck-switcher">
+        <label for="deck_id">Current deck</label>
+        <select id="deck_id" name="deck_id" onchange="this.form.submit()">
+          {% for item in decks %}<option value="{{ item.deck_id }}" {% if selected_id == item.deck_id %}selected{% endif %}>{{ item.title }}</option>{% endfor %}
+        </select>
+      </form>
+      <div class="nav-label">Deck workspace</div>
+      <nav class="nav-links">
+        {% for item in views[:3] %}<a class="nav-link {% if view == item %}active{% endif %}" href="{{ url_for('index', view=item) }}">{{ item }}</a>{% endfor %}
+      </nav>
+      {% if deck and repository %}
+        <div class="sidebar-today">
+          <div class="nav-label">Today</div>
+          <div class="today-stats"><div><strong>{{ repository.due_records(now)|length }}</strong><span>Due</span></div><div><strong>{{ [0, deck.new_cards_per_day - repository.introduced_in_local_day(now, deck.timezone_name)]|max }}</strong><span>New left</span></div></div>
+          {% set introduced = repository.introduced_count() %}
+          <div class="progress-track"><span style="width:{{ (introduced / cards|length * 100) if cards else 0 }}%"></span></div>
+          <small>{{ introduced }} of {{ cards|length }} introduced</small>
+        </div>
+      {% endif %}
+    {% endif %}
+    <div class="nav-label library-label">Library</div>
+    <a class="nav-link {% if view == 'Decks' %}active{% endif %}" href="{{ url_for('index', view='Decks') }}">Manage decks</a>
+    {% if view == 'Study' %}<form action="{{ url_for('study_action') }}" method="post" class="autoplay-toggle"><input type="hidden" name="action" value="auto_read"><input type="hidden" name="enabled" value="{{ 0 if auto_read else 1 }}"><button class="text-toggle" type="submit">{% if auto_read %}◉{% else %}○{% endif %} Auto-read cards</button></form>{% endif %}
+    <div class="sidebar-foot">Local files · FSRS-6</div>
+  </aside>
+
+  <main class="main">
+    <div class="mobile-top"><a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">R</span>Recall Studio</a><a href="{{ url_for('index', view='Decks') }}">Decks</a></div>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="notices">{% for category, message in messages %}<div class="notice {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+
+    {% if view == 'Study' %}
+      <header class="page-heading"><div class="eyebrow">Adaptive review</div><h1>{{ deck.title if deck else 'Study' }}</h1><p>Answer from memory, reveal, then rate your recall.</p></header>
+      {% if not cards %}
+        <section class="empty-state"><span class="empty-mark">+</span><h2>Your deck is ready for its first card.</h2><a class="button primary" href="{{ url_for('index', view='Cards') }}">Add the first card</a></section>
+      {% elif session_complete %}
+        <section class="complete-state"><div class="complete-mark">✓</div><h2>Session complete</h2><p>{{ completion_message }}</p><a class="button" href="{{ url_for('index', view='Study') }}">Check for due cards</a></section>
+      {% elif selected %}
+        <div class="study-meta"><span class="kind-pill">{{ selected.kind }}</span><span>{{ selected.card.card_id }} · {{ selected.card.topic }}</span></div>
+        <section class="study-card question-card">
+          <div class="card-overline">Question</div>
+          <div class="rich-content">{{ selected.card.question|rich_markdown(deck, selected.card.card_id)|safe }}</div>
+          <div class="speech-controls"><button class="icon-button speak" data-speak="{{ selected.card.question|plain_speech }}" data-autoplay="{{ 'true' if question_autoplay else 'false' }}" aria-label="Read question" title="Read question">▶</button><button class="icon-button stop-speech" aria-label="Stop speech" title="Stop speech">■</button></div>
+        </section>
+        {% if not revealed %}
+          <p class="prompt-note">State the rule, the reason, and one relevant example before revealing.</p>
+          <form action="{{ url_for('study_action') }}" method="post"><input type="hidden" name="action" value="reveal"><button class="button primary wide" type="submit">Reveal answer</button></form>
+        {% else %}
+          <section class="study-card answer-card">
+            <div class="card-overline">Answer</div>
+            <div class="rich-content">{{ selected.card.answer|rich_markdown(deck, selected.card.card_id)|safe }}</div>
+            <div class="speech-controls"><button class="icon-button speak" data-speak="{{ selected.card.answer|plain_speech }}" data-autoplay="{{ 'true' if answer_autoplay else 'false' }}" aria-label="Read answer" title="Read answer">▶</button><button class="icon-button stop-speech" aria-label="Stop speech" title="Stop speech">■</button></div>
+          </section>
+          {% if selected.card.links %}<section class="link-previews" data-preview-links>{% for link in selected.card.links %}<a class="link-preview" href="{{ link }}" target="_blank" rel="noopener noreferrer" data-preview-url="{{ link }}"><span class="preview-site">{{ link|url_host }}</span><strong>{{ link }}</strong><span class="preview-description">Open website ↗</span></a>{% endfor %}</section>{% endif %}
+          <p class="prompt-note">Rate what you recalled before seeing the answer, not how familiar it looks now.</p>
+          <div class="rating-grid">{% for name in ('Again', 'Hard', 'Good', 'Easy') %}<form action="{{ url_for('study_action') }}" method="post"><input type="hidden" name="action" value="rate"><input type="hidden" name="rating" value="{{ name }}"><button class="rating-button {{ name|lower }}" type="submit" title="{{ rating_help[name] }}"><span>{{ name }}</span><small>{{ intervals[name] }}</small></button></form>{% endfor %}</div>
+          <details class="memory-details"><summary>Memory details</summary><div class="memory-grid"><div><small>Difficulty</small><strong>{{ '%.2f'|format(progress.fsrs_card.difficulty) if progress.fsrs_card.difficulty else 'New' }}</strong></div><div><small>Stability</small><strong>{{ '%.1f days'|format(progress.fsrs_card.stability) if progress.fsrs_card.stability else 'New' }}</strong></div>{% if retrievability is not none %}<div><small>Estimated retrievability</small><strong>{{ '%.1f%%'|format(retrievability * 100) }}</strong></div>{% endif %}</div></details>
+          {% if selected.card.source %}<p class="source-note">Source · {{ selected.card.source }}</p>{% endif %}
+        {% endif %}
+      {% endif %}
+
+    {% elif view == 'Cards' %}
+      <header class="page-heading"><div class="eyebrow">Deck workspace</div><h1>Cards</h1><p>Create and maintain the content in {{ deck.title }}.</p></header>
+      <div class="workspace-grid">
+        <section class="workspace-list">
+          <form method="get" action="{{ url_for('index') }}" class="filter-form"><input type="hidden" name="view" value="Cards"><label class="field-label" for="q">Search cards</label><input id="q" name="q" value="{{ query }}" placeholder="ID, topic, tag, question, or answer"><label class="field-label" for="topic">Topic</label><select id="topic" name="topic">{% for item in topics %}<option {% if item == topic %}selected{% endif %}>{{ item }}</option>{% endfor %}</select><button class="button" type="submit">Filter</button></form>
+          <p class="result-count">{{ filtered_cards|length }} of {{ cards|length }} cards</p>
+          <div class="card-list">{% for item in filtered_cards %}<a class="card-row {% if selected_card and item.card_id == selected_card.card_id %}selected{% endif %}" href="{{ url_for('index', view='Cards', card=item.card_id, q=query, topic=topic) }}"><span class="row-id">{{ item.card_id }}</span><strong>{{ item.topic }}</strong><span>{{ item.question|striptags|truncate(95) }}</span></a>{% else %}<p class="muted">No matching cards.</p>{% endfor %}</div>
+        </section>
+        <section class="workspace-detail">
+          {% if selected_card %}
+            <div class="detail-toolbar"><span class="eyebrow">{{ selected_card.card_id }} · {{ selected_card.topic }}</span><a href="#edit-card" class="button small">Edit card</a></div>
+            <article class="preview-section"><h2>Question</h2><div class="rich-content">{{ selected_card.question|rich_markdown(deck, selected_card.card_id)|safe }}</div><h2>Answer</h2><div class="rich-content">{{ selected_card.answer|rich_markdown(deck, selected_card.card_id)|safe }}</div>{% if selected_card.tags %}<p class="source-note">Tags · {{ selected_card.tags|join(' · ') }}</p>{% endif %}</article>
+            <form action="{{ url_for('card_action') }}" method="post" class="danger-form"><input type="hidden" name="action" value="delete"><input type="hidden" name="card_id" value="{{ selected_card.card_id }}"><label><input type="checkbox" name="confirm" value="yes"> Delete {{ selected_card.card_id }} and its review history</label><button class="button danger" type="submit">Delete card</button></form>
+            <div id="edit-card" class="form-divider"></div><h2>Edit card</h2>{{ card_editor(deck, selected_card, 'edit') }}
+          {% else %}<div class="empty-inline">No cards yet. Add your first card below.</div>{% endif %}
+          <div class="form-divider"></div><h2>Add a card</h2>{{ card_editor(deck, none, 'add') }}
+        </section>
+      </div>
+
+    {% elif view == 'Decks' %}
+      <header class="page-heading"><div class="eyebrow">Library</div><h1>Decks</h1><p>Create, switch, configure, import, export, or remove decks.</p></header>
+      <div class="deck-management">
+        <section class="settings-section"><h2>Create a deck</h2><form action="{{ url_for('deck_action') }}" method="post" class="form-grid"><input type="hidden" name="action" value="create"><label>Title<input name="title" required placeholder="Algorithms, Spanish verbs, anatomy"></label><label>Description<textarea name="description" rows="2"></textarea></label><label>Desired retention<input name="desired_retention" type="number" min="0.70" max="0.99" step="0.01" value="0.90"></label><label>New cards per day<input name="new_cards_per_day" type="number" min="0" max="500" value="12"></label><button class="button primary" type="submit">Create deck</button></form></section>
+        <section class="settings-section"><h2>Import a deck</h2><p class="muted">Each deck file contains its settings, cards, links, embedded images, and review history.</p><form action="{{ url_for('deck_action') }}" method="post" enctype="multipart/form-data"><input type="hidden" name="action" value="import"><label class="file-input">Deck file<input type="file" name="deck_file" accept=".yaml,.yml" required></label><button class="button" type="submit">Import deck</button></form></section>
+        {% if deck %}
+          <section class="settings-section"><div class="section-heading"><div><h2>Current deck</h2><p class="muted">Stored in {{ deck.path.name }}</p></div><a class="button" href="{{ url_for('export', deck_id=deck.deck_id) }}">Export deck file</a></div><form action="{{ url_for('deck_action') }}" method="post" class="form-grid"><input type="hidden" name="action" value="update"><input type="hidden" name="deck_id" value="{{ deck.deck_id }}"><label>Title<input name="title" value="{{ deck.title }}" required></label><label>Description<textarea name="description" rows="3">{{ deck.description }}</textarea></label><label>Desired retention<input name="desired_retention" type="number" min="0.70" max="0.99" step="0.01" value="{{ deck.desired_retention }}"></label><label>New cards per day<input name="new_cards_per_day" type="number" min="0" max="500" value="{{ deck.new_cards_per_day }}"></label><label>Timezone<input name="timezone_name" value="{{ deck.timezone_name }}" required></label><label>Maximum interval (days)<input name="maximum_interval_days" type="number" min="1" max="36500" value="{{ deck.maximum_interval_days }}"></label><button class="button primary" type="submit">Save deck settings</button></form></section>
+          <section class="settings-section"><h2>Reset study progress</h2><p class="warning-copy">This resets every card to new and permanently removes this deck's review timing and history. Cards remain unchanged.</p><p class="muted">{{ repository.introduced_count() }} introduced cards · {{ repository.review_count() }} reviews</p><form action="{{ url_for('deck_action') }}" method="post" class="inline-confirm"><input type="hidden" name="action" value="reset"><input type="hidden" name="deck_id" value="{{ deck.deck_id }}"><input name="confirmation" placeholder="Type RESET to confirm" required><button class="button danger" type="submit">Reset study progress</button></form></section>
+          <section class="settings-section danger-section"><h2>Delete this deck</h2><p class="warning-copy">This removes the deck, its cards, uploaded images, and review history.</p><form action="{{ url_for('deck_action') }}" method="post" class="inline-confirm"><input type="hidden" name="action" value="delete"><input type="hidden" name="deck_id" value="{{ deck.deck_id }}"><input name="confirmation" placeholder="Type {{ deck.title }} to confirm" required><button class="button danger" type="submit">Delete deck</button></form></section>
+        {% endif %}
+      </div>
+
+    {% else %}
+      <header class="page-heading"><div class="eyebrow">Learning signal</div><h1>Statistics</h1><p>Progress and review history for {{ deck.title }}.</p></header>
+      <div class="metric-grid"><div><span>Cards</span><strong>{{ cards|length }}</strong></div><div><span>Introduced</span><strong>{{ repository.introduced_count() }}</strong></div><div><span>Due now</span><strong>{{ repository.due_records(now)|length }}</strong></div><div><span>Reviews</span><strong>{{ repository.review_count() }}</strong></div></div>
+      {% set ratings = repository.rating_counts() %}
+      <section class="stats-section"><h2>Recall ratings</h2><div class="rating-bars">{% for number, name in rating_labels.items() %}<div><span>{{ name }}</span><div class="bar-track"><i class="bar-{{ name|lower }}" style="width:{{ (ratings.get(number, 0) / repository.review_count() * 100) if repository.review_count() else 0 }}%"></i></div><strong>{{ ratings.get(number, 0) }}</strong></div>{% endfor %}</div></section>
+      <section class="stats-section"><h2>Topics</h2><div class="table-wrap"><table><thead><tr><th>Topic</th><th>Cards</th></tr></thead><tbody>{% for name, count in topic_counts.most_common() %}<tr><td>{{ name }}</td><td>{{ count }}</td></tr>{% else %}<tr><td colspan="2">No cards yet.</td></tr>{% endfor %}</tbody></table></div></section>
+      <section class="stats-section"><h2>Recent reviews</h2><div class="table-wrap"><table><thead><tr><th>Card</th><th>Rating</th><th>Reviewed</th><th>Next due</th></tr></thead><tbody>{% for review in repository.recent_reviews() %}<tr><td>{{ review.card_id }}</td><td>{{ rating_labels[review.rating] }}</td><td>{{ review.reviewed_at|local_time(deck.timezone_name) }}</td><td>{{ review.scheduled_due|local_time(deck.timezone_name) }}</td></tr>{% else %}<tr><td colspan="4">No reviews recorded yet.</td></tr>{% endfor %}</tbody></table></div></section>
+    {% endif %}
+  </main>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

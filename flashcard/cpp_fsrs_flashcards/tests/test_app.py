@@ -1,19 +1,17 @@
 from __future__ import annotations
 
-import gc
 import os
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
 
-from streamlit.testing.v1 import AppTest
+from app import app
+from src.storage import ProgressRepository, list_decks, load_deck_cards, read_deck_document
 
-from src.storage import ProgressRepository, list_decks, read_deck_document
 
-
-class StreamlitAppTests(unittest.TestCase):
-    def test_reveal_and_rate_flow(self) -> None:
+class FlaskAppTests(unittest.TestCase):
+    def test_study_navigation_deck_management_and_card_creation(self) -> None:
         project_root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             temporary_root = Path(directory)
@@ -30,71 +28,58 @@ class StreamlitAppTests(unittest.TestCase):
             previous_decks = os.environ.get("FLASHCARDS_DECKS_DIR")
             os.environ["FLASHCARDS_DB_PATH"] = str(legacy_database_path)
             os.environ["FLASHCARDS_DECKS_DIR"] = str(decks_directory)
+            app.config.update(TESTING=True, SECRET_KEY="test-secret")
             try:
-                app = AppTest.from_file(project_root / "app.py", default_timeout=15)
-                app.run()
-                self.assertEqual([], list(app.exception))
+                client = app.test_client()
+                response = client.get("/")
+                self.assertEqual(200, response.status_code)
+                self.assertIn(b"Reveal answer", response.data)
 
-                reveal = next(button for button in app.button if button.label == "Reveal answer")
-                reveal.click().run()
-                self.assertEqual([], list(app.exception))
-
-                good = next(button for button in app.button if button.label.startswith("Good"))
-                good.click().run()
-                self.assertEqual([], list(app.exception))
-
+                response = client.post("/study", data={"action": "reveal"}, follow_redirects=True)
+                self.assertEqual(200, response.status_code)
+                self.assertIn(b"Rate what you recalled", response.data)
+                client.post("/study", data={"action": "rate", "rating": "Good"}, follow_redirects=True)
                 document = read_deck_document(copied_deck.path)
                 self.assertEqual(1, len(document["study_progress"]["reviews"]))
 
-                for workspace_name in ("Cards", "Statistics", "Study"):
-                    workspace = next(
-                        button for button in app.button if button.label == workspace_name
-                    )
-                    workspace.click().run()
-                    self.assertEqual([], list(app.exception))
+                for view in ("Cards", "Statistics", "Study"):
+                    response = client.get("/", query_string={"view": view})
+                    self.assertEqual(200, response.status_code)
 
-                manage_decks = next(
-                    button for button in app.button if button.label == "Manage decks"
+                response = client.get("/", query_string={"view": "Decks"})
+                self.assertIn(b"Reset study progress", response.data)
+                client.post(
+                    "/decks",
+                    data={"action": "reset", "deck_id": copied_deck.deck_id, "confirmation": "RESET"},
+                    follow_redirects=True,
                 )
-                manage_decks.click().run()
-                self.assertEqual([], list(app.exception))
-                self.assertIn("Reset study progress", [button.label for button in app.button])
-                reset_confirmation = next(
-                    field
-                    for field in app.text_input
-                    if field.label.startswith("Type RESET to start")
-                )
-                reset_confirmation.set_value("RESET").run()
-                reset_button = next(
-                    button for button in app.button if button.label == "Reset study progress"
-                )
-                reset_button.click().run()
-                self.assertEqual([], list(app.exception))
                 document = read_deck_document(copied_deck.path)
-                progress_count = len(document["study_progress"]["card_states"])
-                review_count = len(document["study_progress"]["reviews"])
-                self.assertEqual((0, 0), (progress_count, review_count))
+                self.assertEqual((0, 0), (
+                    len(document["study_progress"]["card_states"]),
+                    len(document["study_progress"]["reviews"]),
+                ))
 
-                new_title = next(
-                    field
-                    for field in app.text_input
-                    if field.label == "Title" and not field.value
+                client.post(
+                    "/decks",
+                    data={"action": "create", "title": "Algorithms Practice", "description": ""},
+                    follow_redirects=True,
                 )
-                new_title.set_value("Algorithms Practice").run()
-                create_button = next(
-                    button for button in app.button if button.label == "Create deck"
+                created_path = decks_directory / "algorithms-practice.deck.yaml"
+                self.assertTrue(created_path.is_file())
+                created_deck = next(deck for deck in list_decks(decks_directory) if deck.deck_id == "algorithms-practice")
+                response = client.post(
+                    "/cards",
+                    data={
+                        "action": "add", "card_id": "algo-001", "topic": "Sorting",
+                        "question": "What does stable sorting preserve?", "answer": "The relative order of equivalent elements.",
+                        "tags": "sorting, algorithms", "links": "",
+                    },
+                    follow_redirects=True,
                 )
-                create_button.click().run()
-                self.assertEqual([], list(app.exception))
-                self.assertTrue((decks_directory / "algorithms-practice.deck.yaml").is_file())
-                current_deck = next(
-                    selectbox for selectbox in app.selectbox if selectbox.label == "Current deck"
-                )
-                self.assertEqual("algorithms-practice", current_deck.value)
+                self.assertEqual(200, response.status_code)
+                self.assertIn(b"Saved algo-001", response.data)
+                self.assertIn("algo-001", [card.card_id for card in load_deck_cards(created_deck)])
             finally:
-                if "app" in locals():
-                    del app
-                gc.collect()
                 if previous_database is None:
                     os.environ.pop("FLASHCARDS_DB_PATH", None)
                 else:

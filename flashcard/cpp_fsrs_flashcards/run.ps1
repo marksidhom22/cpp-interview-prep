@@ -9,7 +9,7 @@ if (-not (Test-Path -LiteralPath $pythonExecutable)) {
 
 Push-Location -LiteralPath $projectDirectory
 try {
-    & $pythonExecutable -m streamlit run app.py
+    & $pythonExecutable app.py
 }
 finally {
     Pop-Location

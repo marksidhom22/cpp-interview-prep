@@ -1,8 +1,6 @@
 # Recall Studio
 
-A local, single-user spaced-repetition application built with Streamlit and FSRS-6. Every deck is one human-readable YAML file containing its settings, Markdown cards, links, embedded images, scheduling state, and review history. There is no separate database.
-
-The included **C++ Interview Flashcards** deck contains 171 cards.
+A local, single-user Flask spaced-repetition application built with FSRS-6. Every deck is one human-readable YAML file containing its settings, Markdown cards, links, embedded images, scheduling state, and review history. There is no separate database.
 
 ## Capabilities
 
@@ -12,13 +10,11 @@ The included **C++ Interview Flashcards** deck contains 171 cards.
 - Write questions and answers in Markdown, including code, tables, and links.
 - Upload PNG, JPEG, WebP, and GIF images into a card.
 - Display remote images when an internet connection is available.
-- Render fenced Mermaid diagrams such as ` ```mermaid ` blocks.
-- Fetch guarded title/description/image previews for public website links.
-- Read questions and answers aloud with the browser's speech engine.
-- Optionally auto-read each question and revealed answer.
-- Prioritize due reviews before new cards.
-- Preserve every Again, Hard, Good, and Easy review event.
-- Reset one deck's study timing and history without changing its cards.
+- Render fenced Mermaid diagrams.
+- Fetch guarded metadata previews for public website links.
+- Read questions and answers aloud with the browser's speech engine, with optional auto-read.
+- Prioritize due reviews before new cards and preserve every rating event.
+- Reset one deck's study timing and review history without changing its cards.
 - View per-deck statistics and recent review history.
 
 ## First setup on Windows
@@ -28,7 +24,7 @@ From this directory:
 ```powershell
 py -3.11 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe -m streamlit run app.py
+.venv\Scripts\python.exe app.py
 ```
 
 After setup, launch it with:
@@ -153,3 +149,5 @@ This creates 13 expanded, topic-specific deck files beside the original deck. Ea
 ```
 
 Use **Decks → Reset study progress** to start one deck from scratch while keeping its content. The action requires typing `RESET` and removes only that deck's FSRS timing and review history.
+
+The local server listens at <http://127.0.0.1:5000>. Set `FLASK_HOST`, `FLASK_PORT`, or `FLASHCARDS_SECRET_KEY` to override its bind address, port, or session signing key.

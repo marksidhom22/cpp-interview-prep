@@ -1,19 +1,17 @@
 from __future__ import annotations
 
-import base64
-import html
 import ipaddress
-import json
 import re
 import socket
 from dataclasses import dataclass
 from html.parser import HTMLParser
-from urllib.parse import urljoin, urlparse
+from urllib.parse import quote, urljoin, urlparse
 
+import bleach
+import markdown
 import requests
-import streamlit as st
 
-from .storage import Deck, load_embedded_asset
+from .storage import Deck
 
 
 MERMAID_PATTERN = re.compile(r"```mermaid\s*\n(?P<diagram>.*?)```", re.DOTALL | re.IGNORECASE)
@@ -31,65 +29,41 @@ class LinkPreview:
     site_name: str | None
 
 
-def _asset_data_url(deck: Deck, card_id: str, filename: str) -> str | None:
-    asset = load_embedded_asset(deck, card_id, filename)
-    if asset is None:
-        return None
-    mime_type, data = asset
-    return f"data:{mime_type};base64,{base64.b64encode(data).decode('ascii')}"
-
-
-def _resolve_images(markdown: str, deck: Deck, card_id: str) -> str:
+def _resolve_images(markdown_text: str, deck: Deck, card_id: str) -> str:
     def replace(match: re.Match[str]) -> str:
-        url = _asset_data_url(deck, card_id, match.group("name"))
-        if url is None:
-            return f"*Missing image: `{match.group('name')}`*"
-        return f"![{match.group('alt')}]({url})"
+        filename = match.group("name")
+        asset_url = "/asset/{}/{}/{}".format(
+            quote(deck.deck_id, safe=""), quote(card_id, safe=""), quote(filename, safe="")
+        )
+        return f"![{match.group('alt')}]({asset_url})"
 
-    return ASSET_IMAGE_PATTERN.sub(replace, markdown)
-
-
-def _render_mermaid(source: str) -> None:
-    escaped = html.escape(source.strip())
-    document = f"""
-    <!doctype html><html><head><meta charset="utf-8"><style>
-      html,body{{margin:0;background:#10242d;color:#e8f3f3}}
-      body{{padding:18px;font-family:Inter,system-ui,sans-serif}}
-      .frame{{border:1px solid #2c5663;border-radius:14px;padding:18px;overflow:auto}}
-      .mermaid{{display:flex;justify-content:center;min-height:80px}}
-      #fallback{{display:none;color:#f4ba68;white-space:pre-wrap;font-family:monospace}}
-    </style></head><body><div class="frame"><pre class="mermaid">{escaped}</pre>
-    <div id="fallback"></div></div><script type="module">
-    try {{
-      const module=await import('https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs');
-      const mermaid=module.default;
-      mermaid.initialize({{startOnLoad:false,securityLevel:'strict',theme:'dark'}});
-      await mermaid.run({{nodes:document.querySelectorAll('.mermaid')}});
-    }} catch(error) {{
-      document.querySelector('.mermaid').style.display='none';
-      const fallback=document.getElementById('fallback'); fallback.style.display='block';
-      fallback.textContent='Diagram preview unavailable.\n\n'+{json.dumps(source)};
-    }}
-    </script></body></html>
-    """
-    st.iframe(document, height=430, width="stretch", tab_index=-1)
+    return ASSET_IMAGE_PATTERN.sub(replace, markdown_text)
 
 
-def render_rich_markdown(markdown: str, deck: Deck, card_id: str) -> None:
-    position = 0
-    for match in MERMAID_PATTERN.finditer(markdown):
-        before = markdown[position : match.start()].strip()
-        if before:
-            st.markdown(_resolve_images(before, deck, card_id))
-        _render_mermaid(match.group("diagram"))
-        position = match.end()
-    after = markdown[position:].strip()
-    if after:
-        st.markdown(_resolve_images(after, deck, card_id))
+def render_rich_markdown(markdown_text: str, deck: Deck, card_id: str) -> str:
+    rendered = markdown.markdown(
+        _resolve_images(markdown_text, deck, card_id),
+        extensions=["fenced_code", "tables", "sane_lists"],
+    )
+    return bleach.clean(
+        rendered,
+        tags={
+            "a", "abbr", "b", "blockquote", "br", "code", "del", "dd", "div", "dl", "dt",
+            "em", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "li", "ol",
+            "p", "pre", "s", "span", "strong", "sub", "sup", "table", "tbody", "td", "th",
+            "thead", "tr", "ul",
+        },
+        attributes={
+            "a": ["href", "title"], "img": ["src", "alt", "title"],
+            "code": ["class"], "pre": ["class"], "th": ["align"], "td": ["align"],
+        },
+        protocols={"http", "https", "mailto"},
+        strip=True,
+    )
 
 
-def _plain_speech_text(markdown: str) -> str:
-    text = MERMAID_PATTERN.sub(" diagram omitted ", markdown)
+def plain_speech_text(markdown_text: str) -> str:
+    text = MERMAID_PATTERN.sub(" diagram omitted ", markdown_text)
     text = re.sub(r"```.*?```", " code example omitted ", text, flags=re.DOTALL)
     text = re.sub(r"!\[([^\]]*)\]\([^\)]*\)", r"\1", text)
     text = re.sub(r"\[([^\]]+)\]\([^\)]*\)", r"\1", text)
@@ -97,23 +71,7 @@ def _plain_speech_text(markdown: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def render_speech_control(markdown: str, label: str, *, autoplay: bool = False) -> None:
-    text = json.dumps(_plain_speech_text(markdown), ensure_ascii=False).replace("<", "\\u003c")
-    document = f"""
-    <!doctype html><html><head><style>
-      html,body{{margin:0;background:transparent;font-family:Inter,system-ui,sans-serif}}
-      .row{{display:flex;gap:8px}}button{{border:1px solid #2c5663;border-radius:9px;
-      background:#10242d;color:#e8f3f3;padding:9px 13px;cursor:pointer;font-weight:700}}
-    </style></head><body><div class="row"><button id="speak">🔊 {html.escape(label)}</button>
-    <button id="stop">Stop</button></div><script>
-      const text={text}; const speak=()=>{{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);
-      u.rate=.95;speechSynthesis.speak(u)}};
-      document.getElementById('speak').onclick=speak;
-      document.getElementById('stop').onclick=()=>speechSynthesis.cancel();
-      if({str(autoplay).lower()}) speak();
-    </script></body></html>
-    """
-    st.iframe(document, height=54, width="stretch", tab_index=0)
+_plain_speech_text = plain_speech_text
 
 
 class _MetadataParser(HTMLParser):
@@ -199,7 +157,7 @@ def fetch_link_preview(url: str) -> LinkPreview:
     image = parser.metadata.get("og:image") or parser.metadata.get("twitter:image")
     return LinkPreview(
         current,
-        title.strip() or parsed.hostname or current,
+        title.strip() or urlparse(current).hostname or current,
         description[:500],
         urljoin(current, image) if image else None,
         parser.metadata.get("og:site_name"),

@@ -1,0 +1,12 @@
+{% macro card_editor(deck, card, action) %}
+<form action="{{ url_for('card_action') }}" method="post" enctype="multipart/form-data" class="card-editor">
+  <input type="hidden" name="action" value="{{ action }}">
+  <div class="form-row"><label>Stable card ID<input name="card_id" value="{{ card.card_id if card else next_card_id(cards) }}" {% if card %}readonly{% endif %} required></label><label>Topic<input name="topic" value="{{ card.topic if card else 'General' }}"></label></div>
+  <label>Question (Markdown)<textarea name="question" rows="6" required>{{ card.question if card else '' }}</textarea></label>
+  <label>Answer (Markdown)<textarea name="answer" rows="8" required>{{ card.answer if card else '' }}</textarea></label>
+  <label>Tags (comma separated)<input name="tags" value="{{ card.tags|join(', ') if card else '' }}"></label>
+  <label>Website links to preview (one per line)<textarea name="links" rows="3">{{ card.links|join('\n') if card else '' }}</textarea></label>
+  <details class="rich-media"><summary>Rich media</summary><label>Upload images<input type="file" name="images" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label><label>Place uploads in<select name="upload_placement"><option>Answer</option><option>Question</option></select></label><label>Remote image URLs (one per line)<textarea name="remote_images" rows="2"></textarea></label><label>Place remote images in<select name="remote_placement"><option>Answer</option><option>Question</option></select></label><label>Mermaid diagram source<textarea name="mermaid" rows="4" placeholder="flowchart LR&#10;  A[Question] --> B[Answer]"></textarea></label><label>Place Mermaid in<select name="mermaid_placement"><option>Answer</option><option>Question</option></select></label></details>
+  <button class="button primary" type="submit">{{ 'Save changes' if card else 'Add card' }}</button>
+</form>
+{% endmacro %}
