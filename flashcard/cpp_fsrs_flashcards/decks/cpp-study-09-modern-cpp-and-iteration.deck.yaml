@@ -137,3 +137,6 @@ cards:
     **More detail:** `override` catches signature mismatches, `= default` requests generated behavior, and `= delete` rejects selected operations at compile time.
   source: 09_modern_cpp_language_features_and_iteration.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

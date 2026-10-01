@@ -105,3 +105,6 @@ cards:
     **More detail:** Surprising operators make code harder to read and can violate users' expectations about familiar syntax.
   source: 06_namespaces_and_overloading.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

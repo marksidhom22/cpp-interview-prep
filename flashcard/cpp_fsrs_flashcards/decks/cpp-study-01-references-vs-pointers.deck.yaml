@@ -108,3 +108,6 @@ cards:
     **More detail:** Returning a reference is safe only when the referenced storage has a lifetime that clearly exceeds the caller's use.
   source: 01_cpp_references_vs_pointers.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

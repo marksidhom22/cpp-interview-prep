@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .streamlit/secrets.toml
+# Legacy files from versions before progress moved into each deck YAML.
 data/progress.db
 data/progress.db-shm
 data/progress.db-wal
-

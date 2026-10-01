@@ -237,6 +237,7 @@ def main() -> int:
             "study_settings": copy.deepcopy(source["study_settings"]),
             "cards": [],
             "assets": {},
+            "study_progress": {"card_states": {}, "reviews": []},
         }
         for original_card in topic_cards:
             card = copy.deepcopy(original_card)

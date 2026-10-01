@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import json
 import mimetypes
 import os
 import re
 import sqlite3
 import unicodedata
-from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterator
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -32,9 +31,6 @@ class AppConfig:
     relearning_steps: tuple[timedelta, ...] = (timedelta(minutes=10),)
     decks_directory: Path = Path(
         os.environ.get("FLASHCARDS_DECKS_DIR", PROJECT_ROOT / "decks")
-    )
-    database_path: Path = Path(
-        os.environ.get("FLASHCARDS_DB_PATH", PROJECT_ROOT / "data" / "progress.db")
     )
 
 
@@ -98,8 +94,15 @@ def _validate_document(data: object) -> dict[str, object]:
         raise ValueError("Deck study_settings must be a mapping")
     cards = data.get("cards", [])
     assets = data.get("assets", {})
+    study_progress = data.get("study_progress", {})
     if not isinstance(cards, list) or not isinstance(assets, dict):
         raise ValueError("Deck cards must be a list and assets must be a mapping")
+    if not isinstance(study_progress, dict):
+        raise ValueError("Deck study_progress must be a mapping")
+    card_states = study_progress.get("card_states", {})
+    reviews = study_progress.get("reviews", [])
+    if not isinstance(card_states, dict) or not isinstance(reviews, list):
+        raise ValueError("Deck progress card_states must be a mapping and reviews must be a list")
     seen: set[str] = set()
     for record in cards:
         if not isinstance(record, dict):
@@ -114,6 +117,15 @@ def _validate_document(data: object) -> dict[str, object]:
         ).strip():
             raise ValueError(f"Question and answer are required for card {card_id}")
         seen.add(card_id)
+    for card_id, state in card_states.items():
+        if not CARD_ID_PATTERN.fullmatch(str(card_id)) or not isinstance(state, dict):
+            raise ValueError(f"Invalid progress record for card {card_id!r}")
+        if not isinstance(state.get("fsrs"), dict):
+            raise ValueError(f"Missing FSRS state for card {card_id}")
+        if not state.get("introduced_at") or not state.get("due"):
+            raise ValueError(f"Incomplete progress timestamps for card {card_id}")
+    if any(not isinstance(review, dict) for review in reviews):
+        raise ValueError("Every review history item must be a mapping")
     return data
 
 
@@ -155,6 +167,9 @@ def _deck_document(deck: Deck, existing: dict[str, object] | None = None) -> dic
         },
         "cards": existing.get("cards", []),
         "assets": existing.get("assets", {}),
+        "study_progress": existing.get(
+            "study_progress", {"card_states": {}, "reviews": []}
+        ),
     }
 
 
@@ -256,6 +271,7 @@ def import_deck(directory: Path, content: bytes) -> Deck:
     title = str(data["title"]).strip()
     deck_id = _unique_deck_id(directory, title)
     data["id"] = deck_id
+    data.setdefault("study_progress", {"card_states": {}, "reviews": []})
     path = directory / f"{deck_id}{DECK_FILE_SUFFIX}"
     write_deck_document(path, data)
     return _load_deck(path)
@@ -386,6 +402,41 @@ def load_embedded_asset(deck: Deck, card_id: str, filename: str) -> tuple[str, b
     return str(media_type), data
 
 
+def _progress_section(document: dict[str, object]) -> dict[str, object]:
+    progress = document.setdefault(
+        "study_progress", {"card_states": {}, "reviews": []}
+    )
+    if not isinstance(progress, dict):
+        raise ValueError("Deck study_progress must be a mapping")
+    progress.setdefault("card_states", {})
+    progress.setdefault("reviews", [])
+    if not isinstance(progress["card_states"], dict) or not isinstance(
+        progress["reviews"], list
+    ):
+        raise ValueError("Deck progress card_states must be a mapping and reviews must be a list")
+    return progress
+
+
+_RATING_NAMES = {1: "Again", 2: "Hard", 3: "Good", 4: "Easy"}
+_RATING_NUMBERS = {name: number for number, name in _RATING_NAMES.items()}
+
+
+def _rating_name(value: int) -> str:
+    try:
+        return _RATING_NAMES[value]
+    except KeyError as exc:
+        raise ValueError(f"Invalid review rating: {value}") from exc
+
+
+def _rating_number(value: object) -> int:
+    if isinstance(value, int) and value in _RATING_NAMES:
+        return value
+    try:
+        return _RATING_NUMBERS[str(value)]
+    except KeyError as exc:
+        raise ValueError(f"Invalid review rating: {value!r}") from exc
+
+
 def delete_card(deck: Deck, card: StudyCard) -> None:
     document = read_deck_document(deck.path)
     cards = document["cards"]
@@ -393,6 +444,11 @@ def delete_card(deck: Deck, card: StudyCard) -> None:
     assert isinstance(cards, list) and isinstance(assets, dict)
     document["cards"] = [record for record in cards if record.get("id") != card.card_id]
     assets.pop(card.card_id, None)
+    progress = _progress_section(document)
+    progress["card_states"].pop(card.card_id, None)
+    progress["reviews"] = [
+        review for review in progress["reviews"] if review.get("card_id") != card.card_id
+    ]
     write_deck_document(deck.path, document)
 
 
@@ -414,49 +470,9 @@ class RecentReview:
 
 
 class ProgressRepository:
-    def __init__(self, database_path: Path, deck_id: str) -> None:
-        self.database_path = database_path
-        self.deck_id = deck_id
-        database_path.parent.mkdir(parents=True, exist_ok=True)
-        with self._connect() as connection:
-            connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS card_progress (
-                    deck_id TEXT NOT NULL,
-                    card_id TEXT NOT NULL,
-                    fsrs_state TEXT NOT NULL,
-                    introduced_at TEXT NOT NULL,
-                    last_review TEXT,
-                    due TEXT NOT NULL,
-                    PRIMARY KEY (deck_id, card_id)
-                );
-                CREATE TABLE IF NOT EXISTS reviews (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    deck_id TEXT NOT NULL,
-                    card_id TEXT NOT NULL,
-                    reviewed_at TEXT NOT NULL,
-                    rating INTEGER NOT NULL,
-                    review_log TEXT NOT NULL,
-                    scheduled_due TEXT NOT NULL,
-                    review_duration_ms INTEGER,
-                    FOREIGN KEY(deck_id, card_id) REFERENCES card_progress(deck_id, card_id)
-                        ON DELETE CASCADE
-                );
-                CREATE INDEX IF NOT EXISTS idx_progress_due ON card_progress(deck_id, due);
-                CREATE INDEX IF NOT EXISTS idx_reviews_time ON reviews(deck_id, reviewed_at);
-                """
-            )
-
-    @contextmanager
-    def _connect(self) -> Iterator[sqlite3.Connection]:
-        connection = sqlite3.connect(self.database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys = ON")
-        try:
-            yield connection
-            connection.commit()
-        finally:
-            connection.close()
+    def __init__(self, deck: Deck) -> None:
+        self.deck = deck
+        self.deck_id = deck.deck_id
 
     @staticmethod
     def _utc(value: datetime) -> datetime:
@@ -469,105 +485,100 @@ class ProgressRepository:
         return datetime.fromisoformat(value) if value else None
 
     @classmethod
-    def _record(cls, row: sqlite3.Row) -> ProgressRecord:
-        introduced = cls._datetime(row["introduced_at"])
-        due = cls._datetime(row["due"])
+    def _record(cls, card_id: str, record: dict[str, object]) -> ProgressRecord:
+        introduced = cls._datetime(str(record["introduced_at"]))
+        due = cls._datetime(str(record["due"]))
         assert introduced is not None and due is not None
+        fsrs_state = record["fsrs"]
+        if not isinstance(fsrs_state, dict):
+            raise ValueError(f"Invalid FSRS state for card {card_id}")
         return ProgressRecord(
-            row["card_id"],
-            Card.from_json(row["fsrs_state"]),
+            card_id,
+            Card.from_json(json.dumps(fsrs_state)),
             introduced,
-            cls._datetime(row["last_review"]),
+            cls._datetime(str(record["last_review"])) if record.get("last_review") else None,
             due,
         )
 
+    def _read(self) -> tuple[dict[str, object], dict[str, object]]:
+        document = read_deck_document(self.deck.path)
+        return document, _progress_section(document)
+
     def get(self, card_id: str) -> ProgressRecord | None:
-        with self._connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM card_progress WHERE deck_id=? AND card_id=?",
-                (self.deck_id, card_id),
-            ).fetchone()
-        return self._record(row) if row else None
+        _, progress = self._read()
+        record = progress["card_states"].get(card_id)
+        return self._record(card_id, record) if isinstance(record, dict) else None
 
     def get_all(self) -> dict[str, ProgressRecord]:
-        with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM card_progress WHERE deck_id=?", (self.deck_id,)
-            ).fetchall()
-        return {row["card_id"]: self._record(row) for row in rows}
+        _, progress = self._read()
+        return {
+            str(card_id): self._record(str(card_id), record)
+            for card_id, record in progress["card_states"].items()
+            if isinstance(record, dict)
+        }
 
     def introduce(self, card_id: str, card: Card, now: datetime) -> ProgressRecord:
         self._utc(now)
-        with self._connect() as connection:
-            connection.execute(
-                "INSERT OR IGNORE INTO card_progress VALUES (?, ?, ?, ?, NULL, ?)",
-                (self.deck_id, card_id, card.to_json(), now.isoformat(), card.due.isoformat()),
-            )
-        record = self.get(card_id)
-        assert record is not None
-        return record
+        document, progress = self._read()
+        states = progress["card_states"]
+        existing = states.get(card_id)
+        if not isinstance(existing, dict):
+            fsrs_state = json.loads(card.to_json())
+            states[card_id] = {
+                "introduced_at": now.isoformat(),
+                "last_review": None,
+                "due": card.due.isoformat(),
+                "fsrs": fsrs_state,
+            }
+            write_deck_document(self.deck.path, document)
+            existing = states[card_id]
+        return self._record(card_id, existing)
 
     def record_review(
         self, card_id: str, card: Card, review: ReviewLog, duration_ms: int | None
     ) -> None:
         reviewed_at = self._utc(review.review_datetime)
-        with self._connect() as connection:
-            connection.execute(
-                "UPDATE card_progress SET fsrs_state=?, last_review=?, due=? "
-                "WHERE deck_id=? AND card_id=?",
-                (
-                    card.to_json(),
-                    reviewed_at.isoformat(),
-                    card.due.isoformat(),
-                    self.deck_id,
-                    card_id,
-                ),
-            )
-            connection.execute(
-                "INSERT INTO reviews "
-                "(deck_id, card_id, reviewed_at, rating, review_log, scheduled_due, review_duration_ms) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (
-                    self.deck_id,
-                    card_id,
-                    reviewed_at.isoformat(),
-                    int(review.rating),
-                    review.to_json(),
-                    card.due.isoformat(),
-                    duration_ms,
-                ),
-            )
+        document, progress = self._read()
+        state = progress["card_states"].get(card_id)
+        if not isinstance(state, dict):
+            raise ValueError(f"Card {card_id} must be introduced before it can be reviewed")
+        state.update(
+            {
+                "last_review": reviewed_at.isoformat(),
+                "due": card.due.isoformat(),
+                "fsrs": json.loads(card.to_json()),
+            }
+        )
+        progress["reviews"].append(
+            {
+                "card_id": card_id,
+                "reviewed_at": reviewed_at.isoformat(),
+                "rating": _rating_name(int(review.rating)),
+                "scheduled_due": card.due.isoformat(),
+                "duration_ms": duration_ms,
+                "fsrs_log": json.loads(review.to_json()),
+            }
+        )
+        write_deck_document(self.deck.path, document)
 
     def due_records(self, now: datetime) -> list[ProgressRecord]:
         self._utc(now)
-        with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM card_progress WHERE deck_id=? AND due<=? ORDER BY due, card_id",
-                (self.deck_id, now.isoformat()),
-            ).fetchall()
-        return [self._record(row) for row in rows]
+        return sorted(
+            (record for record in self.get_all().values() if record.due <= now),
+            key=lambda record: (record.due, record.card_id),
+        )
 
     def next_due(self, now: datetime) -> datetime | None:
         self._utc(now)
-        with self._connect() as connection:
-            row = connection.execute(
-                "SELECT due FROM card_progress WHERE deck_id=? AND due>? ORDER BY due LIMIT 1",
-                (self.deck_id, now.isoformat()),
-            ).fetchone()
-        return self._datetime(row["due"]) if row else None
-
-    def _count(self, table: str) -> int:
-        with self._connect() as connection:
-            row = connection.execute(
-                f"SELECT COUNT(*) AS n FROM {table} WHERE deck_id=?", (self.deck_id,)
-            ).fetchone()
-        return int(row["n"])
+        future = [record.due for record in self.get_all().values() if record.due > now]
+        return min(future) if future else None
 
     def introduced_count(self) -> int:
-        return self._count("card_progress")
+        return len(self.get_all())
 
     def review_count(self) -> int:
-        return self._count("reviews")
+        _, progress = self._read()
+        return len(progress["reviews"])
 
     @staticmethod
     def _day_bounds(now: datetime, timezone_name: str) -> tuple[datetime, datetime]:
@@ -575,54 +586,164 @@ class ProgressRepository:
         start = local.replace(hour=0, minute=0, second=0, microsecond=0)
         return start.astimezone(timezone.utc), (start + timedelta(days=1)).astimezone(timezone.utc)
 
-    def _count_today(self, table: str, column: str, now: datetime, timezone_name: str) -> int:
-        start, end = self._day_bounds(now, timezone_name)
-        with self._connect() as connection:
-            row = connection.execute(
-                f"SELECT COUNT(*) AS n FROM {table} "
-                f"WHERE deck_id=? AND {column}>=? AND {column}<?",
-                (self.deck_id, start.isoformat(), end.isoformat()),
-            ).fetchone()
-        return int(row["n"])
+    @classmethod
+    def _count_today(
+        cls, values: list[datetime], now: datetime, timezone_name: str
+    ) -> int:
+        start, end = cls._day_bounds(now, timezone_name)
+        return sum(start <= value < end for value in values)
 
     def introduced_in_local_day(self, now: datetime, timezone_name: str) -> int:
-        return self._count_today("card_progress", "introduced_at", now, timezone_name)
+        return self._count_today(
+            [record.introduced_at for record in self.get_all().values()], now, timezone_name
+        )
 
     def reviews_in_local_day(self, now: datetime, timezone_name: str) -> int:
-        return self._count_today("reviews", "reviewed_at", now, timezone_name)
+        return self._count_today(
+            [review.reviewed_at for review in self.recent_reviews(limit=None)], now, timezone_name
+        )
 
     def rating_counts(self) -> dict[int, int]:
-        with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT rating, COUNT(*) AS n FROM reviews WHERE deck_id=? GROUP BY rating",
-                (self.deck_id,),
-            ).fetchall()
-        return {int(row["rating"]): int(row["n"]) for row in rows}
+        counts: dict[int, int] = {}
+        for review in self.recent_reviews(limit=None):
+            counts[review.rating] = counts.get(review.rating, 0) + 1
+        return counts
 
-    def recent_reviews(self, limit: int = 20) -> list[RecentReview]:
-        with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT card_id, reviewed_at, rating, scheduled_due FROM reviews "
-                "WHERE deck_id=? ORDER BY reviewed_at DESC LIMIT ?",
-                (self.deck_id, limit),
-            ).fetchall()
-        return [
+    def recent_reviews(self, limit: int | None = 20) -> list[RecentReview]:
+        _, progress = self._read()
+        reviews = [
             RecentReview(
-                row["card_id"],
-                datetime.fromisoformat(row["reviewed_at"]),
-                int(row["rating"]),
-                datetime.fromisoformat(row["scheduled_due"]),
+                str(record["card_id"]),
+                datetime.fromisoformat(str(record["reviewed_at"])),
+                _rating_number(record["rating"]),
+                datetime.fromisoformat(str(record["scheduled_due"])),
             )
-            for row in rows
+            for record in progress["reviews"]
         ]
+        reviews.sort(key=lambda review: review.reviewed_at, reverse=True)
+        return reviews if limit is None else reviews[:limit]
 
     def delete_card_progress(self, card_id: str) -> None:
-        with self._connect() as connection:
-            connection.execute(
-                "DELETE FROM card_progress WHERE deck_id=? AND card_id=?",
-                (self.deck_id, card_id),
-            )
+        document, progress = self._read()
+        progress["card_states"].pop(card_id, None)
+        progress["reviews"] = [
+            review for review in progress["reviews"] if review.get("card_id") != card_id
+        ]
+        write_deck_document(self.deck.path, document)
 
     def delete_deck_progress(self) -> None:
-        with self._connect() as connection:
-            connection.execute("DELETE FROM card_progress WHERE deck_id=?", (self.deck_id,))
+        document, _ = self._read()
+        document["study_progress"] = {"card_states": {}, "reviews": []}
+        write_deck_document(self.deck.path, document)
+
+
+def migrate_legacy_progress(database_path: Path, decks: list[Deck]) -> tuple[int, int]:
+    """Move the former shared SQLite progress into each deck YAML, then remove the DB."""
+    if not database_path.is_file():
+        return 0, 0
+
+    connection = sqlite3.connect(database_path)
+    try:
+        connection.row_factory = sqlite3.Row
+        tables = {
+            str(row["name"])
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+        if not {"card_progress", "reviews"}.issubset(tables):
+            raise ValueError(f"Legacy progress database has an unexpected format: {database_path}")
+        state_rows = connection.execute(
+            "SELECT deck_id, card_id, fsrs_state, introduced_at, last_review, due "
+            "FROM card_progress ORDER BY deck_id, card_id"
+        ).fetchall()
+        review_rows = connection.execute(
+            "SELECT deck_id, card_id, reviewed_at, rating, review_log, scheduled_due, "
+            "review_duration_ms FROM reviews ORDER BY id"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    deck_by_id = {deck.deck_id: deck for deck in decks}
+    source_deck_ids = {
+        str(row["deck_id"]) for row in [*state_rows, *review_rows]
+    }
+    unknown = sorted(source_deck_ids - set(deck_by_id))
+    if unknown:
+        raise ValueError(
+            "Legacy progress belongs to missing decks and was not removed: "
+            + ", ".join(unknown)
+        )
+
+    states_by_deck: dict[str, list[sqlite3.Row]] = {}
+    reviews_by_deck: dict[str, list[sqlite3.Row]] = {}
+    for row in state_rows:
+        states_by_deck.setdefault(str(row["deck_id"]), []).append(row)
+    for row in review_rows:
+        reviews_by_deck.setdefault(str(row["deck_id"]), []).append(row)
+
+    for deck in decks:
+        document = read_deck_document(deck.path)
+        progress = _progress_section(document)
+        card_states = progress["card_states"]
+        reviews = progress["reviews"]
+        assert isinstance(card_states, dict) and isinstance(reviews, list)
+
+        for row in states_by_deck.get(deck.deck_id, []):
+            fsrs_state = json.loads(str(row["fsrs_state"]))
+            if not isinstance(fsrs_state, dict):
+                raise ValueError(f"Invalid legacy FSRS state for {deck.deck_id}/{row['card_id']}")
+            card_states.setdefault(
+                str(row["card_id"]),
+                {
+                    "introduced_at": str(row["introduced_at"]),
+                    "last_review": str(row["last_review"]) if row["last_review"] else None,
+                    "due": str(row["due"]),
+                    "fsrs": fsrs_state,
+                },
+            )
+
+        existing_reviews = {
+            (
+                str(review.get("card_id")),
+                str(review.get("reviewed_at")),
+                _rating_number(review.get("rating")),
+                str(review.get("scheduled_due")),
+            )
+            for review in reviews
+            if isinstance(review, dict)
+        }
+        for row in reviews_by_deck.get(deck.deck_id, []):
+            signature = (
+                str(row["card_id"]),
+                str(row["reviewed_at"]),
+                int(row["rating"]),
+                str(row["scheduled_due"]),
+            )
+            if signature in existing_reviews:
+                continue
+            review_log = json.loads(str(row["review_log"]))
+            if not isinstance(review_log, dict):
+                raise ValueError(f"Invalid legacy review log for {deck.deck_id}/{row['card_id']}")
+            reviews.append(
+                {
+                    "card_id": str(row["card_id"]),
+                    "reviewed_at": str(row["reviewed_at"]),
+                    "rating": _rating_name(int(row["rating"])),
+                    "scheduled_due": str(row["scheduled_due"]),
+                    "duration_ms": row["review_duration_ms"],
+                    "fsrs_log": review_log,
+                }
+            )
+            existing_reviews.add(signature)
+
+        write_deck_document(deck.path, document)
+
+    for row in state_rows:
+        repository = ProgressRepository(deck_by_id[str(row["deck_id"])])
+        if repository.get(str(row["card_id"])) is None:
+            raise RuntimeError("Legacy progress verification failed; database was kept")
+
+    for suffix in ("", "-wal", "-shm"):
+        path = Path(f"{database_path}{suffix}")
+        if path.exists():
+            path.unlink()
+    return len(state_rows), len(review_rows)

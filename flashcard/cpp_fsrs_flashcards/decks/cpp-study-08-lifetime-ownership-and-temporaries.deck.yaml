@@ -105,3 +105,6 @@ cards:
     **More detail:** Make ownership visible in interfaces so reviewers can identify who keeps an object alive and who is responsible for cleanup.
   source: 08_stack_heap_lifetime_scope_temporaries.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

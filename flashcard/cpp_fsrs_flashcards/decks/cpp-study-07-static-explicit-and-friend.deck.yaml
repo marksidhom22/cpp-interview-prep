@@ -105,3 +105,18 @@ cards:
     **More detail:** Because ADL finds the function through its argument types, the hidden friend is available to relevant calls without broad namespace visibility.
   source: 07_static_explicit_friend.md
 assets: {}
+study_progress:
+  card_states:
+    '07.1':
+      introduced_at: '2026-09-30T23:34:58.836392+00:00'
+      last_review: null
+      due: '2026-09-30T23:34:58.836392+00:00'
+      fsrs:
+        card_id: 7880927690145024263
+        state: 1
+        step: 0
+        stability: null
+        difficulty: null
+        due: '2026-09-30T23:34:58.836392+00:00'
+        last_review: null
+  reviews: []

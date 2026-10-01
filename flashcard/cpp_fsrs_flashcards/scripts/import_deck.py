@@ -81,6 +81,7 @@ def write_cards(cards: list[ImportedCard], deck_path: Path) -> None:
                 "maximum_interval_days": 3650,
             },
             "assets": {},
+            "study_progress": {"card_states": {}, "reviews": []},
         }
     document["cards"] = [
         {

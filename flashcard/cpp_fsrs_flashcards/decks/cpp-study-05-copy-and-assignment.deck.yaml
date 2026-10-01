@@ -105,3 +105,6 @@ cards:
     **More detail:** The Rule of Zero reduces custom lifetime code, which in turn reduces exception-safety and maintenance risks.
   source: 05_copy_constructor_and_copy_assignment.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

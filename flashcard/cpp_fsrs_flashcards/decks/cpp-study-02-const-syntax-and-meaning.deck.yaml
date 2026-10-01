@@ -105,3 +105,18 @@ cards:
     **More detail:** Use atomics or synchronization for data-race prevention; use volatile only for implementation-specific observable access requirements such as MMIO.
   source: C++ study notes
 assets: {}
+study_progress:
+  card_states:
+    '02.1':
+      introduced_at: '2026-09-30T23:34:43.490262+00:00'
+      last_review: null
+      due: '2026-09-30T23:34:43.490262+00:00'
+      fsrs:
+        card_id: 3808960151833180346
+        state: 1
+        step: 0
+        stability: null
+        difficulty: null
+        due: '2026-09-30T23:34:43.490262+00:00'
+        last_review: null
+  reviews: []

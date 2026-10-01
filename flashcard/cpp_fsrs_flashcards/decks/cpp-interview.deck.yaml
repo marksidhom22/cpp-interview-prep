@@ -876,3 +876,84 @@ cards:
   answer: Allocation timing, bounded capacity, iterator validity, exception policy, worst-case complexity, code size, allocator strategy, library support, and whether the operation is deterministic enough for the required context.
   source: 12_cpp_standard_template_library_stl.md
 assets: {}
+study_progress:
+  card_states:
+    '00.1':
+      introduced_at: '2026-09-30T22:43:25.280032+00:00'
+      last_review: '2026-09-30T22:59:02.804145+00:00'
+      due: '2026-10-06T22:59:02.804145+00:00'
+      fsrs:
+        card_id: 4427448101413634160
+        state: 2
+        step: null
+        stability: 8.2956
+        difficulty: 1.0
+        due: '2026-10-06T22:59:02.804145+00:00'
+        last_review: '2026-09-30T22:59:02.804145+00:00'
+    '00.2':
+      introduced_at: '2026-09-30T22:59:03.055459+00:00'
+      last_review: '2026-09-30T23:28:09.154314+00:00'
+      due: '2026-10-07T23:28:09.154314+00:00'
+      fsrs:
+        card_id: 4206696234807470372
+        state: 2
+        step: null
+        stability: 8.2956
+        difficulty: 1.0
+        due: '2026-10-07T23:28:09.154314+00:00'
+        last_review: '2026-09-30T23:28:09.154314+00:00'
+    '00.3':
+      introduced_at: '2026-09-30T23:28:09.485614+00:00'
+      last_review: '2026-09-30T23:30:12.779532+00:00'
+      due: '2026-10-08T23:30:12.779532+00:00'
+      fsrs:
+        card_id: 3245921808171101142
+        state: 2
+        step: null
+        stability: 8.2956
+        difficulty: 1.0
+        due: '2026-10-08T23:30:12.779532+00:00'
+        last_review: '2026-09-30T23:30:12.779532+00:00'
+    '00.4':
+      introduced_at: '2026-09-30T23:30:13.060467+00:00'
+      last_review: null
+      due: '2026-09-30T23:30:13.060467+00:00'
+      fsrs:
+        card_id: 7729832858994550682
+        state: 1
+        step: 0
+        stability: null
+        difficulty: null
+        due: '2026-09-30T23:30:13.060467+00:00'
+        last_review: null
+  reviews:
+  - card_id: '00.1'
+    reviewed_at: '2026-09-30T22:59:02.804145+00:00'
+    rating: Easy
+    scheduled_due: '2026-10-06T22:59:02.804145+00:00'
+    duration_ms: 344016
+    fsrs_log:
+      card_id: 4427448101413634160
+      rating: 4
+      review_datetime: '2026-09-30T22:59:02.804145+00:00'
+      review_duration: 344016
+  - card_id: '00.2'
+    reviewed_at: '2026-09-30T23:28:09.154314+00:00'
+    rating: Easy
+    scheduled_due: '2026-10-07T23:28:09.154314+00:00'
+    duration_ms: 37577
+    fsrs_log:
+      card_id: 4206696234807470372
+      rating: 4
+      review_datetime: '2026-09-30T23:28:09.154314+00:00'
+      review_duration: 37577
+  - card_id: '00.3'
+    reviewed_at: '2026-09-30T23:30:12.779532+00:00'
+    rating: Easy
+    scheduled_due: '2026-10-08T23:30:12.779532+00:00'
+    duration_ms: 123264
+    fsrs_log:
+      card_id: 3245921808171101142
+      rating: 4
+      review_datetime: '2026-09-30T23:30:12.779532+00:00'
+      review_duration: 123264

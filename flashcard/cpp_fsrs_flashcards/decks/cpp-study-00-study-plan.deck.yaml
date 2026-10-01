@@ -111,3 +111,18 @@ cards:
     **More detail:** Readiness is demonstrated by repeatable performance on unfamiliar tasks, not by finishing a fixed reading list.
   source: C++ study notes
 assets: {}
+study_progress:
+  card_states:
+    '00.1':
+      introduced_at: '2026-09-30T23:34:45.703316+00:00'
+      last_review: null
+      due: '2026-09-30T23:34:45.703316+00:00'
+      fsrs:
+        card_id: 8166872398388446863
+        state: 1
+        step: 0
+        stability: null
+        difficulty: null
+        due: '2026-09-30T23:34:45.703316+00:00'
+        last_review: null
+  reviews: []

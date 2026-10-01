@@ -105,3 +105,18 @@ cards:
     **More detail:** Record the chosen baseline in build configuration and CI so developers and release builds use consistent language and library modes.
   source: 10_cpp_standards_and_version_comparison.md
 assets: {}
+study_progress:
+  card_states:
+    '10.1':
+      introduced_at: '2026-09-30T23:35:00.425609+00:00'
+      last_review: null
+      due: '2026-09-30T23:35:00.425609+00:00'
+      fsrs:
+        card_id: 3803204197136244902
+        state: 1
+        step: 0
+        stability: null
+        difficulty: null
+        due: '2026-09-30T23:35:00.425609+00:00'
+        last_review: null
+  reviews: []

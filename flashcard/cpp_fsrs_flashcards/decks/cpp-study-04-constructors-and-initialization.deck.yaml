@@ -121,3 +121,6 @@ cards:
     **More detail:** Calling a virtual function from a constructor or destructor does not dispatch into a derived portion that is not currently alive.
   source: 04_constructors_destructors_initialization.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

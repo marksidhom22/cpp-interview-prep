@@ -129,3 +129,18 @@ cards:
     **More detail:** Constrain templates and keep diagnostics understandable; use a non-template interface when genericity provides no meaningful benefit.
   source: 11_cpp_templates_and_generic_programming.md
 assets: {}
+study_progress:
+  card_states:
+    '11.1':
+      introduced_at: '2026-09-30T23:35:04.249081+00:00'
+      last_review: null
+      due: '2026-09-30T23:35:04.249081+00:00'
+      fsrs:
+        card_id: 2100724035588296351
+        state: 1
+        step: 0
+        stability: null
+        difficulty: null
+        due: '2026-09-30T23:35:04.249081+00:00'
+        last_review: null
+  reviews: []

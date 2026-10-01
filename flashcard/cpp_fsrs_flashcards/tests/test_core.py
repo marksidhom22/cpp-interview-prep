@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import sqlite3
 import tempfile
 import unittest
-from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -18,6 +18,7 @@ from src.storage import (
     list_decks,
     load_deck_cards,
     load_embedded_asset,
+    migrate_legacy_progress,
     save_card,
     save_uploaded_image,
 )
@@ -57,9 +58,20 @@ class DeckTests(unittest.TestCase):
             self.assertEqual("asset://diagram.png", asset_uri)
             self.assertEqual(("image/png", b"png-data"), load_embedded_asset(deck, "card-0001", "diagram.png"))
 
+            now = datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc)
+            repository = ProgressRepository(deck)
+            state = repository.introduce(
+                "card-0001", new_fsrs_card(deck.deck_id, "card-0001", now), now
+            )
+            updated, log = build_scheduler(deck, CONFIG).review_card(
+                state.fsrs_card, Rating.Good, review_datetime=now
+            )
+            repository.record_review("card-0001", updated, log, 900)
+
             imported = import_deck(root, export_deck(deck))
             self.assertNotEqual(deck.deck_id, imported.deck_id)
             self.assertEqual(1, len(load_deck_cards(imported)))
+            self.assertEqual(1, ProgressRepository(imported).review_count())
             self.assertEqual(
                 ("image/png", b"png-data"),
                 load_embedded_asset(imported, "card-0001", "diagram.png"),
@@ -78,12 +90,29 @@ class DeckTests(unittest.TestCase):
 
 
 class ProgressTests(unittest.TestCase):
+    @staticmethod
+    def _deck(directory: str, *, new_cards_per_day: int = 12):
+        deck = create_deck(
+            Path(directory) / "decks",
+            "Progress test",
+            new_cards_per_day=new_cards_per_day,
+        )
+        for number in range(1, 3):
+            save_card(
+                deck,
+                card_id=f"card-{number:04d}",
+                topic="Testing",
+                question=f"Question {number}",
+                answer=f"Answer {number}",
+            )
+        return deck
+
     def test_review_is_persisted_and_due_card_wins(self) -> None:
-        deck = cpp_deck()
-        cards = load_deck_cards(deck)
         now = datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
-            repository = ProgressRepository(Path(directory) / "progress.db", deck.deck_id)
+            deck = self._deck(directory)
+            cards = load_deck_cards(deck)
+            repository = ProgressRepository(deck)
             first = cards[0]
             repository.introduce(
                 first.card_id,
@@ -114,11 +143,11 @@ class ProgressTests(unittest.TestCase):
             self.assertIsNone(repository.get(first.card_id))
 
     def test_daily_new_card_limit(self) -> None:
-        deck = replace(cpp_deck(), new_cards_per_day=1)
-        cards = load_deck_cards(deck)
         now = datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc)
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
-            repository = ProgressRepository(Path(directory) / "progress.db", deck.deck_id)
+            deck = self._deck(directory, new_cards_per_day=1)
+            cards = load_deck_cards(deck)
+            repository = ProgressRepository(deck)
             repository.introduce(
                 cards[0].card_id,
                 new_fsrs_card(deck.deck_id, cards[0].card_id, now),
@@ -134,6 +163,62 @@ class ProgressTests(unittest.TestCase):
             repository.record_review(cards[0].card_id, updated, log, 500)
             later = now + timedelta(seconds=1)
             self.assertIsNone(choose_next_card(cards, repository, deck, CONFIG, later))
+
+    def test_legacy_database_is_migrated_into_deck_yaml(self) -> None:
+        now = datetime(2026, 9, 30, 17, 0, tzinfo=timezone.utc)
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
+            deck = self._deck(directory)
+            card = load_deck_cards(deck)[0]
+            fsrs_card = new_fsrs_card(deck.deck_id, card.card_id, now)
+            scheduler = build_scheduler(deck, CONFIG)
+            updated, log = scheduler.review_card(fsrs_card, Rating.Good, review_datetime=now)
+            database_path = Path(directory) / "progress.db"
+            with sqlite3.connect(database_path) as connection:
+                connection.executescript(
+                    """
+                    CREATE TABLE card_progress (
+                        deck_id TEXT, card_id TEXT, fsrs_state TEXT, introduced_at TEXT,
+                        last_review TEXT, due TEXT
+                    );
+                    CREATE TABLE reviews (
+                        id INTEGER PRIMARY KEY, deck_id TEXT, card_id TEXT, reviewed_at TEXT,
+                        rating INTEGER, review_log TEXT, scheduled_due TEXT,
+                        review_duration_ms INTEGER
+                    );
+                    """
+                )
+                connection.execute(
+                    "INSERT INTO card_progress VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        deck.deck_id,
+                        card.card_id,
+                        updated.to_json(),
+                        now.isoformat(),
+                        now.isoformat(),
+                        updated.due.isoformat(),
+                    ),
+                )
+                connection.execute(
+                    "INSERT INTO reviews VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        1,
+                        deck.deck_id,
+                        card.card_id,
+                        now.isoformat(),
+                        int(Rating.Good),
+                        log.to_json(),
+                        updated.due.isoformat(),
+                        1200,
+                    ),
+                )
+            connection.close()
+
+            self.assertEqual((1, 1), migrate_legacy_progress(database_path, [deck]))
+            self.assertFalse(database_path.exists())
+            repository = ProgressRepository(deck)
+            self.assertEqual(1, repository.introduced_count())
+            self.assertEqual(1, repository.review_count())
+            self.assertEqual(updated.due, repository.get(card.card_id).due)
 
 
 if __name__ == "__main__":

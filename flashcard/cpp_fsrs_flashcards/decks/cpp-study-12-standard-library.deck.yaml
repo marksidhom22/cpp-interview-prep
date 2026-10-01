@@ -153,3 +153,6 @@ cards:
     **More detail:** Bound memory and execution time explicitly, and verify allocator and library behavior for the exact embedded toolchain and runtime context.
   source: 12_cpp_standard_template_library_stl.md
 assets: {}
+study_progress:
+  card_states: {}
+  reviews: []

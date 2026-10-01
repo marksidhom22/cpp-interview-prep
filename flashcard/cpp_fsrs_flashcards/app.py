@@ -27,6 +27,7 @@ from src.storage import (
     import_deck,
     list_decks,
     load_deck_cards,
+    migrate_legacy_progress,
     next_card_id,
     save_card,
     save_uploaded_image,
@@ -92,9 +93,9 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def database_path() -> Path:
+def legacy_database_path() -> Path:
     override = os.environ.get("FLASHCARDS_DB_PATH") or os.environ.get("CPP_FLASHCARDS_DB_PATH")
-    return Path(override) if override else CONFIG.database_path
+    return Path(override) if override else Path(__file__).resolve().parent / "data" / "progress.db"
 
 
 def decks_path() -> Path:
@@ -567,7 +568,6 @@ def render_cards_page(deck: Deck, cards: list[StudyCard], repository: ProgressRe
                         key=f"delete-card:{deck.deck_id}:{selected.card_id}",
                     ):
                         delete_card(deck, selected)
-                        repository.delete_card_progress(selected.card_id)
                         clear_study_state()
                         st.success(f"Deleted {selected.card_id}.")
                         st.rerun()
@@ -668,12 +668,12 @@ def render_decks_page(deck: Deck | None, decks: list[Deck]) -> None:
         )
 
     with st.expander("Reset study progress"):
-        repository = ProgressRepository(database_path(), deck.deck_id)
+        repository = ProgressRepository(deck)
         introduced = repository.introduced_count()
         reviews = repository.review_count()
         st.warning(
             "This resets every card to new and permanently removes this deck's review timing "
-            "and history. The deck file and all card content stay unchanged."
+            "and history. Cards and other deck content stay unchanged."
         )
         st.caption(f"Current progress · {introduced} introduced cards · {reviews} reviews")
         reset_confirmation = st.text_input(
@@ -703,8 +703,6 @@ def render_decks_page(deck: Deck | None, decks: list[Deck]) -> None:
             disabled=confirmation != deck.title,
             key=f"delete-deck:{deck.deck_id}",
         ):
-            repository = ProgressRepository(database_path(), deck.deck_id)
-            repository.delete_deck_progress()
             delete_deck(deck, decks_path())
             remaining = [item for item in decks if item.deck_id != deck.deck_id]
             if remaining:
@@ -761,6 +759,11 @@ def render_stats_page(deck: Deck, cards: list[StudyCard], repository: ProgressRe
 
 try:
     decks = list_decks(decks_path())
+    migrated_states, migrated_reviews = migrate_legacy_progress(legacy_database_path(), decks)
+    if migrated_states or migrated_reviews:
+        st.session_state.deck_message = (
+            f"Moved {migrated_states} card states and {migrated_reviews} reviews into the deck files."
+        )
 except Exception as exc:
     st.error(f"Could not load the deck library: {exc}")
     st.stop()
@@ -817,7 +820,7 @@ with st.sidebar:
     if selected_id and navigation != "Decks":
         active = deck_by_id[selected_id]
         active_cards = load_deck_cards(active)
-        active_repository = ProgressRepository(database_path(), active.deck_id)
+        active_repository = ProgressRepository(active)
         if navigation == "Study":
             st.divider()
             st.toggle("Auto-read question and answer", key="auto_read")
@@ -837,7 +840,7 @@ if not decks:
 
 deck = deck_by_id[selected_id]
 cards = load_deck_cards(deck)
-repository = ProgressRepository(database_path(), deck.deck_id)
+repository = ProgressRepository(deck)
 
 navigation = st.session_state.get("navigation", "Study")
 if navigation == "Study":

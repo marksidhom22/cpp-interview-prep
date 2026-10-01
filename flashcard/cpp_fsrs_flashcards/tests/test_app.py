@@ -3,12 +3,13 @@ from __future__ import annotations
 import gc
 import os
 import shutil
-import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
+
+from src.storage import ProgressRepository, list_decks, read_deck_document
 
 
 class StreamlitAppTests(unittest.TestCase):
@@ -16,16 +17,18 @@ class StreamlitAppTests(unittest.TestCase):
         project_root = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as directory:
             temporary_root = Path(directory)
-            database_path = temporary_root / "progress.db"
+            legacy_database_path = temporary_root / "legacy-progress.db"
             decks_directory = temporary_root / "decks"
             decks_directory.mkdir()
             shutil.copy2(
                 project_root / "decks" / "cpp-interview.deck.yaml",
                 decks_directory / "cpp-interview.deck.yaml",
             )
+            copied_deck = list_decks(decks_directory)[0]
+            ProgressRepository(copied_deck).delete_deck_progress()
             previous_database = os.environ.get("FLASHCARDS_DB_PATH")
             previous_decks = os.environ.get("FLASHCARDS_DECKS_DIR")
-            os.environ["FLASHCARDS_DB_PATH"] = str(database_path)
+            os.environ["FLASHCARDS_DB_PATH"] = str(legacy_database_path)
             os.environ["FLASHCARDS_DECKS_DIR"] = str(decks_directory)
             try:
                 app = AppTest.from_file(project_root / "app.py", default_timeout=15)
@@ -40,9 +43,8 @@ class StreamlitAppTests(unittest.TestCase):
                 good.click().run()
                 self.assertEqual([], list(app.exception))
 
-                with sqlite3.connect(database_path) as connection:
-                    review_count = connection.execute("SELECT COUNT(*) FROM reviews").fetchone()[0]
-                self.assertEqual(1, review_count)
+                document = read_deck_document(copied_deck.path)
+                self.assertEqual(1, len(document["study_progress"]["reviews"]))
 
                 for workspace_name in ("Cards", "Statistics", "Study"):
                     workspace = next(
@@ -68,13 +70,9 @@ class StreamlitAppTests(unittest.TestCase):
                 )
                 reset_button.click().run()
                 self.assertEqual([], list(app.exception))
-                with sqlite3.connect(database_path) as connection:
-                    progress_count = connection.execute(
-                        "SELECT COUNT(*) FROM card_progress"
-                    ).fetchone()[0]
-                    review_count = connection.execute(
-                        "SELECT COUNT(*) FROM reviews"
-                    ).fetchone()[0]
+                document = read_deck_document(copied_deck.path)
+                progress_count = len(document["study_progress"]["card_states"])
+                review_count = len(document["study_progress"]["reviews"])
                 self.assertEqual((0, 0), (progress_count, review_count))
 
                 new_title = next(

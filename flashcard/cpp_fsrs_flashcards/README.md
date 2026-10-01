@@ -1,6 +1,6 @@
 # Recall Studio
 
-A local, single-user spaced-repetition application built with Streamlit and FSRS-6. Every deck is one human-editable YAML file containing its settings, Markdown cards, links, and embedded images. SQLite separately preserves scheduling state and review history.
+A local, single-user spaced-repetition application built with Streamlit and FSRS-6. Every deck is one human-readable YAML file containing its settings, Markdown cards, links, embedded images, scheduling state, and review history. There is no separate database.
 
 The included **C++ Interview Flashcards** deck contains 171 cards.
 
@@ -37,7 +37,7 @@ After setup, launch it with:
 .\run.ps1
 ```
 
-Progress is stored in `data/progress.db`.
+Progress is stored inside the corresponding file in `decks/`.
 
 ## Library layout
 
@@ -47,16 +47,15 @@ decks/
 ├── algorithms.deck.yaml
 └── ... exactly one file per deck
 
-data/
-└── progress.db
-
 src/
 ├── storage.py   # deck files, cards, images, and progress
 ├── study.py     # FSRS scheduling and card selection
 └── content.py   # Markdown, Mermaid, speech, and link previews
 ```
 
-Each deck file is portable. Use **Decks → Export deck file** to back it up or move it to another Recall Studio installation. Scheduling progress is intentionally separate from exported content.
+Each deck file is completely portable. Use **Decks → Export deck file** to back it up or move it to another Recall Studio installation; its study progress travels with it.
+
+When upgrading from the older SQLite-based version, the application migrates `data/progress.db` into the matching deck files once, verifies the card states, and removes the obsolete database.
 
 ## Deck file format
 
@@ -78,9 +77,29 @@ cards:
     tags: [cpp, lifetime]
     links: [https://example.com/reference]
 assets: {}
+study_progress:
+  card_states:
+    card-0001:
+      introduced_at: '2026-09-30T17:00:00+00:00'
+      last_review: '2026-09-30T17:01:00+00:00'
+      due: '2026-10-01T17:01:00+00:00'
+      fsrs:
+        card_id: 123456789
+        state: 2
+        step: null
+        stability: 1.0
+        difficulty: 5.0
+        due: '2026-10-01T17:01:00+00:00'
+        last_review: '2026-09-30T17:01:00+00:00'
+  reviews:
+    - card_id: card-0001
+      reviewed_at: '2026-09-30T17:01:00+00:00'
+      rating: Good
+      scheduled_due: '2026-10-01T17:01:00+00:00'
+      duration_ms: 1800
 ```
 
-Questions and answers accept Markdown. Card IDs are permanent: editing wording does not reset review history.
+Questions and answers accept Markdown. Card IDs are permanent: editing wording does not reset review history. Uploaded images are represented as base64 YAML binary values because image bytes are not text; all other deck and progress data remains ordinary readable YAML.
 
 ## Mermaid diagrams
 
